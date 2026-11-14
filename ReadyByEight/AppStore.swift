@@ -9,9 +9,11 @@ final class AppStore {
     private(set) var state = SavedState()
     private(set) var busy = false
     private(set) var sending = false
+    private(set) var isCoachSpeaking = false
     private(set) var notificationsAllowed = false
     var error: String?
     private let center = UNUserNotificationCenter.current()
+    private var speechTask: Task<Void, Never>?
     private var fileURL: URL {
         URL.applicationSupportDirectory.appending(path: "ReadyByEight/state.json")
     }
@@ -154,15 +156,22 @@ final class AppStore {
         guard !sending else { return }
         var candidate = state
         candidate.messages = []
-        do { try persist(candidate) }
-        catch { self.error = "Couldn’t clear the chat. \(error.localizedDescription)" }
+        do {
+            try persist(candidate)
+            stopCoachResponse()
+        } catch { self.error = "Couldn’t clear the chat. \(error.localizedDescription)" }
     }
 
     func send(_ input: String) async {
         let text = String(input.trimmingCharacters(in: .whitespacesAndNewlines).prefix(2_000))
         guard !text.isEmpty, !sending else { return }
+        stopCoachResponse()
         sending = true
-        defer { sending = false }
+        isCoachSpeaking = true
+        defer {
+            sending = false
+            if speechTask == nil { isCoachSpeaking = false }
+        }
         var candidate = state
         candidate.messages.append(CoachMessage(isUser: true, text: text))
         candidate.messages = Array(candidate.messages.suffix(60))
@@ -171,8 +180,7 @@ final class AppStore {
             self.error = "Couldn’t save your message. \(error.localizedDescription)"
             return
         }
-        let next = nextAlarm?.formatted(date: .abbreviated, time: .shortened)
-        var response = OfflineCoach.reply(to: text, nextAlarm: next)
+        var response = OfflineCoach.reply(to: text)
         #if canImport(FoundationModels)
         if #available(iOS 26.0, *), SystemLanguageModel.default.isAvailable {
             do {
@@ -196,8 +204,28 @@ final class AppStore {
         candidate = state
         candidate.messages.append(CoachMessage(isUser: false, text: response))
         candidate.messages = Array(candidate.messages.suffix(60))
-        do { try persist(candidate) }
-        catch { self.error = "Couldn’t save the reply. \(error.localizedDescription)" }
+        do {
+            try persist(candidate)
+            finishCoachResponse(reply: response)
+        } catch { self.error = "Couldn’t save the reply. \(error.localizedDescription)" }
+    }
+
+    private func finishCoachResponse(reply: String) {
+        let words = reply.split { $0.isWhitespace || $0.isNewline }.count
+        let duration = min(12, max(1.5, Double(words) / 2.8))
+        speechTask = Task { @MainActor [weak self] in
+            do { try await Task.sleep(for: .seconds(duration)) }
+            catch { return }
+            guard !Task.isCancelled else { return }
+            self?.isCoachSpeaking = false
+            self?.speechTask = nil
+        }
+    }
+
+    private func stopCoachResponse() {
+        speechTask?.cancel()
+        speechTask = nil
+        isCoachSpeaking = false
     }
 }
 

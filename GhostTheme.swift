@@ -4,25 +4,25 @@ import SwiftUI
 /// iOS 17+, Swift 6. Add this file to the ReadyByEight app target to use it.
 ///
 /// Performance notes:
-/// - The ambient background is static by default. Optional animation is capped at
-///   15 fps, moves only opacity/offset, and respects Reduce Motion.
-/// - Blur and glow values never animate. Keep animated effects off scrolling lists.
-/// - Cards use one gradient fill plus a hairline, without animated expensive shadows.
+/// - `GhostAurora(animated:)` renders static by default. Animated mode targets 60 fps
+///   of blurred layers, so it is opt-in and skipped when Reduce Motion is on.
+/// - Glow uses `shadow`, which the compositor caches; avoid animating it per frame.
+/// - Cards use one material layer plus one hairline border: no extra blend passes.
 enum GhostTheme {
 
     // MARK: - Palette
 
-    static let mintBright = Color(red: 0.86, green: 0.96, blue: 0.82)
-    static let mint = Color(red: 0.73, green: 0.87, blue: 0.72)
-    static let teal = Color(red: 0.37, green: 0.66, blue: 0.59)
-    static let inkDeep = Color(red: 0.018, green: 0.025, blue: 0.025)
-    static let ink = Color(red: 0.043, green: 0.055, blue: 0.052)
-    static let inkRaised = Color(red: 0.075, green: 0.092, blue: 0.085)
-    static let textPrimary = Color(red: 0.92, green: 0.95, blue: 0.91)
-    static let textSecondary = Color(red: 0.65, green: 0.71, blue: 0.66)
+    static let mintBright = Color(red: 0.85, green: 0.98, blue: 0.72)
+    static let mint = Color(red: 0.76, green: 0.91, blue: 0.62)
+    static let teal = Color(red: 0.35, green: 0.72, blue: 0.68)
+    static let inkDeep = Color(red: 0.025, green: 0.030, blue: 0.040)
+    static let ink = Color(red: 0.055, green: 0.065, blue: 0.075)
+    static let inkRaised = Color(red: 0.10, green: 0.115, blue: 0.13)
+    static let textPrimary = Color.white.opacity(0.92)
+    static let textSecondary = Color.white.opacity(0.58)
     static let hairline = Color.white.opacity(0.10)
-    static let glass = Color.white.opacity(0.045)
-    static let glassStrong = Color.white.opacity(0.085)
+    static let glass = Color.white.opacity(0.06)
+    static let glassStrong = Color.white.opacity(0.10)
 
     // MARK: - Metrics
 
@@ -70,7 +70,7 @@ struct GhostAurora: View {
 
     var body: some View {
         if animated && !reduceMotion {
-            TimelineView(.animation(minimumInterval: 1.0 / 15.0)) { context in
+            TimelineView(.animation(minimumInterval: 1.0 / 60.0)) { context in
                 layers(phase: context.date.timeIntervalSinceReferenceDate)
             }
         } else {
@@ -79,30 +79,29 @@ struct GhostAurora: View {
     }
 
     private func layers(phase: TimeInterval) -> some View {
-        let drift = CGFloat(sin(phase * 0.22))
+        let drift = CGFloat(sin(phase * 0.35))
         return ZStack {
             LinearGradient(colors: [GhostTheme.inkDeep, GhostTheme.ink],
                            startPoint: .top, endPoint: .bottom)
 
-            // Fixed-size radial gradients are much cheaper than animating large blurs.
             Circle()
-                .fill(RadialGradient(colors: [GhostTheme.mint.opacity(0.14), .clear],
-                                     center: .center, startRadius: 0, endRadius: 180))
-                .frame(width: 360, height: 360)
-                .offset(x: -125 + drift * 12, y: -245 + drift * 8)
-
-            Circle()
-                .fill(RadialGradient(colors: [GhostTheme.teal.opacity(0.10), .clear],
-                                     center: .center, startRadius: 0, endRadius: 160))
+                .fill(GhostTheme.mint.opacity(0.22))
                 .frame(width: 320, height: 320)
-                .offset(x: 135 - drift * 10, y: 250 + drift * 8)
+                .blur(radius: 90)
+                .offset(x: -110 + drift * 22, y: -240 + drift * 16)
 
-            LinearGradient(colors: [.clear, GhostTheme.inkDeep.opacity(0.35)],
-                           startPoint: .center, endPoint: .bottom)
+            Circle()
+                .fill(GhostTheme.teal.opacity(0.20))
+                .frame(width: 280, height: 280)
+                .blur(radius: 100)
+                .offset(x: 130 - drift * 18, y: 230 + drift * 14)
+
+            RadialGradient(colors: [.clear, GhostTheme.inkDeep.opacity(0.85)],
+                           center: .center, startRadius: 90, endRadius: 480)
         }
         .ignoresSafeArea()
         .allowsHitTesting(false)
-        .accessibilityHidden(true)
+        .compositingGroup()
     }
 }
 
@@ -122,48 +121,24 @@ struct GhostCard: ViewModifier {
                 RoundedRectangle(cornerRadius: radius, style: .continuous)
                     .strokeBorder(GhostTheme.borderGradient, lineWidth: 1)
             }
-            // Static shadows only; the background effect supplies the ambient light.
-            .shadow(color: Color.black.opacity(0.28), radius: 12, x: 0, y: 6)
-            .shadow(color: glow ? GhostTheme.mint.opacity(0.22) : .clear,
-                    radius: glow ? 18 : 0)
-    }
-}
-
-// MARK: - Reference-style icon button
-
-struct GhostIconButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.system(size: 16, weight: .medium))
-            .foregroundStyle(GhostTheme.textPrimary)
-            .frame(width: 44, height: 44)
-            .background(GhostTheme.glass, in: Circle())
-            .overlay(Circle().strokeBorder(GhostTheme.hairline, lineWidth: 0.75))
-            .opacity(configuration.isPressed ? 0.72 : 1)
-            .scaleEffect(configuration.isPressed ? 0.96 : 1)
-            .animation(GhostTheme.Motion.press, value: configuration.isPressed)
+            .compositingGroup()
+            .shadow(color: Color.black.opacity(0.38), radius: 18, x: 0, y: 10)
+            .shadow(color: glow ? GhostTheme.mint.opacity(0.30) : .clear,
+                    radius: glow ? 26 : 0)
     }
 }
 
 // MARK: - Press feedback for every tappable surface
 
 struct GhostPressStyle: ButtonStyle {
-    var scale: CGFloat = 0.98
+    var scale: CGFloat = 0.97
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(configuration.isPressed ? scale : 1)
-            .brightness(configuration.isPressed ? 0.04 : 0)
+            .opacity(configuration.isPressed ? 0.88 : 1)
             .animation(GhostTheme.Motion.press, value: configuration.isPressed)
     }
-}
-
-extension ButtonStyle where Self == GhostIconButtonStyle {
-    static var ghostIcon: GhostIconButtonStyle { GhostIconButtonStyle() }
-}
-
-extension ButtonStyle where Self == GhostPressStyle {
-    static var ghostPress: GhostPressStyle { GhostPressStyle() }
 }
 
 // MARK: - Light sweep (opt-in: gate it and it honours Reduce Motion)
@@ -269,6 +244,88 @@ struct GhostChip: View {
             .background(GhostTheme.glass, in: Capsule())
             .overlay(Capsule().strokeBorder(GhostTheme.hairline, lineWidth: 1))
             .foregroundStyle(GhostTheme.textSecondary)
+    }
+}
+
+// MARK: - Speaking mascot
+
+/// A visual speaking indicator, not an audio or lip-sync signal.
+/// Pass the store's `isCoachSpeaking`; reduced motion keeps the mascot static.
+struct GhostMascot: View {
+    let isSpeaking: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    init(isSpeaking: Bool = false) {
+        self.isSpeaking = isSpeaking
+    }
+
+    var body: some View {
+        Group {
+            if isSpeaking && !reduceMotion {
+                TimelineView(.animation(minimumInterval: 1.0 / 60.0)) { context in
+                    drawing(time: context.date.timeIntervalSinceReferenceDate, animated: true)
+                }
+            } else {
+                drawing(time: 0, animated: false)
+            }
+        }
+        .aspectRatio(1, contentMode: .fit)
+        .allowsHitTesting(false)
+        .accessibilityLabel(isSpeaking ? "Ghost coach is responding" : "Ghost coach")
+    }
+
+    private func drawing(time: TimeInterval, animated: Bool) -> some View {
+        Canvas { context, size in
+            let unit = min(size.width, size.height)
+            let wave = animated ? sin(time * .pi * 4) : 0
+            let bob = animated ? sin(time * .pi * 2) * unit * 0.025 : 0
+            let width = unit * 0.66
+            let height = unit * 0.70
+            let origin = CGPoint(x: (size.width - width) / 2,
+                                 y: (size.height - height) / 2 + bob)
+            let body = CGRect(origin: origin, size: CGSize(width: width, height: height))
+            let path = ghostPath(in: body, wave: wave)
+
+            context.fill(path, with: .color(GhostTheme.mint.opacity(0.14)))
+            context.stroke(path, with: .color(GhostTheme.mint), lineWidth: max(1.5, unit * 0.025))
+
+            let eyeSize = CGSize(width: unit * 0.045, height: unit * (animated ? 0.065 : 0.05))
+            for xFactor in [0.40, 0.60] {
+                let eye = CGRect(x: size.width * xFactor - eyeSize.width / 2,
+                                 y: origin.y + height * 0.32,
+                                 width: eyeSize.width, height: eyeSize.height)
+                context.fill(Path(ellipseIn: eye), with: .color(GhostTheme.mintBright))
+            }
+
+            let mouthHeight = unit * (animated ? 0.055 + 0.035 * abs(wave) : 0.025)
+            let mouth = CGRect(x: size.width * 0.47,
+                               y: origin.y + height * 0.47,
+                               width: unit * 0.06, height: mouthHeight)
+            context.fill(Path(ellipseIn: mouth), with: .color(GhostTheme.mintBright))
+        }
+    }
+
+    private func ghostPath(in rect: CGRect, wave: Double) -> Path {
+        Path { path in
+            let left = rect.minX
+            let right = rect.maxX
+            let top = rect.minY
+            let bottom = rect.maxY
+            let waveOffset = rect.height * 0.025 * wave
+            path.move(to: CGPoint(x: left, y: bottom))
+            path.addLine(to: CGPoint(x: left, y: top + rect.width / 2))
+            path.addArc(center: CGPoint(x: rect.midX, y: top + rect.width / 2),
+                        radius: rect.width / 2,
+                        startAngle: .degrees(180), endAngle: .degrees(0), clockwise: false)
+            path.addLine(to: CGPoint(x: right, y: bottom))
+            path.addQuadCurve(to: CGPoint(x: rect.midX + rect.width / 6, y: bottom - waveOffset),
+                              control: CGPoint(x: rect.midX + rect.width / 3, y: bottom - rect.height * 0.10))
+            path.addQuadCurve(to: CGPoint(x: rect.midX - rect.width / 6, y: bottom + waveOffset),
+                              control: CGPoint(x: rect.midX, y: bottom + rect.height * 0.08))
+            path.addQuadCurve(to: CGPoint(x: left, y: bottom),
+                              control: CGPoint(x: rect.midX - rect.width / 3, y: bottom - rect.height * 0.10))
+            path.closeSubpath()
+        }
     }
 }
 
