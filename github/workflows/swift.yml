@@ -1,0 +1,39 @@
+name: Swift
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  logic:
+    name: Logic tests
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile and run Foundation checks
+        run: |
+          set -euo pipefail
+          swiftc ReadyByEight/AlarmModels.swift Tests/main.swift -o ready-by-eight-tests
+          ./ready-by-eight-tests
+
+  build:
+    name: iOS simulator build
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Show Xcode version
+        run: xcodebuild -version
+      - name: Build ReadyByEight for iOS Simulator
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project ReadyByEight.xcodeproj \
+            -target ReadyByEight \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            -sdk iphonesimulator \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build
