@@ -171,7 +171,8 @@ final class AppStore {
             self.error = "Couldn’t save your message. \(error.localizedDescription)"
             return
         }
-        var response = OfflineCoach.reply(to: text)
+        var response = OfflineCoach.reply(to: text,
+            nextAlarm: nextAlarm?.formatted(date: .abbreviated, time: .shortened))
         #if canImport(FoundationModels)
         if #available(iOS 26.0, *), SystemLanguageModel.default.isAvailable {
             do {
