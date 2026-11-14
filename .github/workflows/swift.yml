@@ -1,22 +1,45 @@
-# This workflow will build a Swift project
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-swift
-
 name: Swift
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
-  build:
-
+  test:
+    name: Logic tests
     runs-on: macos-latest
-
     steps:
-    - uses: actions/checkout@v4
-    - name: Build
-      run: swift build -v
-    - name: Run tests
-      run: swift test -v
+      - uses: actions/checkout@v5
+
+      - name: Run reminder logic tests
+        run: swift test --disable-sandbox -v
+
+  build:
+    name: iOS simulator build
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: List simulators
+        run: xcrun simctl list devices available
+
+      - name: Build Ready by Eight
+        run: |
+          set -euo pipefail
+          DESTINATION="$(
+            xcrun simctl list devices available |
+            awk -F '[()]' '/iPhone/ && /Shutdown|Booted/ { print $2; exit }'
+          )"
+          if [ -z "${DESTINATION}" ]; then
+            echo "No available iPhone simulator found."
+            exit 1
+          fi
+          xcodebuild \
+            -project ReadyByEight.xcodeproj \
+            -scheme ReadyByEight \
+            -destination "platform=iOS Simulator,id=${DESTINATION}" \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO \
+            build
