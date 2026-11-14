@@ -28,7 +28,7 @@ final class AppStore {
     var challengeCompleted: Bool { state.completedDay == SavedState.dayKey() }
     var coachName: String {
         #if canImport(FoundationModels)
-        if #available(iOS 26.0, *), case .available = SystemLanguageModel.default.availability {
+        if #available(iOS 26.0, *), SystemLanguageModel.default.isAvailable {
             return "On-device AI · Private"
         }
         #endif
@@ -171,9 +171,10 @@ final class AppStore {
             self.error = "Couldn’t save your message. \(error.localizedDescription)"
             return
         }
-        var response = OfflineCoach.reply(to: text)
+        let next = nextAlarm?.formatted(date: .abbreviated, time: .shortened)
+        var response = OfflineCoach.reply(to: text, nextAlarm: next)
         #if canImport(FoundationModels)
-        if #available(iOS 26.0, *), case .available = SystemLanguageModel.default.availability {
+        if #available(iOS 26.0, *), SystemLanguageModel.default.isAvailable {
             do {
                 let session = LanguageModelSession(instructions: """
                 You are Eight, a warm, concise morning coach. Use at most 90 words.
