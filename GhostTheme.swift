@@ -5,7 +5,7 @@ import SwiftUI
 ///
 /// Performance notes:
 /// - `GhostAurora(animated:)` renders static by default. Animated mode runs at 60 fps
-///   and skips continuous motion when Reduce Motion is enabled.
+///   when opted in and is skipped when Reduce Motion is on.
 /// - Glow uses `shadow`, which the compositor caches; avoid animating it per frame.
 /// - Cards use one material layer plus one hairline border: no extra blend passes.
 enum GhostTheme {
@@ -247,16 +247,15 @@ struct GhostChip: View {
     }
 }
 
-// MARK: - 60 fps Speaking Ghost Mascot
+// MARK: - Speaking Ghost Mascot (60 fps reactive animation)
 
 struct GhostMascot: View {
-    var isSpeaking: Bool
-    var isThinking: Bool = false
+    var isSpeaking: Bool = false
     var size: CGFloat = 64
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        if !reduceMotion && (isSpeaking || isThinking) {
+        if !reduceMotion {
             TimelineView(.animation(minimumInterval: 1.0 / 60.0)) { context in
                 mascotCanvas(time: context.date.timeIntervalSinceReferenceDate)
             }
@@ -266,92 +265,47 @@ struct GhostMascot: View {
     }
 
     private func mascotCanvas(time: TimeInterval) -> some View {
-        let active = !reduceMotion && (isSpeaking || isThinking)
-        let bob = active ? CGFloat(sin(time * (isSpeaking ? 6.5 : 3.0))) * (size * 0.055) : 0
-        let tilt = active ? sin(time * (isSpeaking ? 5.2 : 2.2)) * (isSpeaking ? 4.5 : 2.0) : 0
-        let mouthOpen: CGFloat = (!reduceMotion && isSpeaking)
-            ? CGFloat(0.35 + 0.65 * abs(sin(time * 11.0)))
-            : (isSpeaking ? 0.6 : 0.15)
-        let pulse: CGFloat = (!reduceMotion && isSpeaking)
-            ? CGFloat(1.0 + 0.08 * sin(time * 9.0))
-            : 1.0
+        let bob = isSpeaking ? CGFloat(sin(time * 8.0)) * 3.5 : CGFloat(sin(time * 2.2)) * 2.0
+        let mouthOpen = isSpeaking ? CGFloat(0.45 + 0.55 * abs(sin(time * 11.0))) : 0.16
+        let pulse = isSpeaking ? CGFloat(1.0 + 0.04 * sin(time * 9.0)) : 1.0
 
         return ZStack {
             Circle()
-                .fill(GhostTheme.mint.opacity(isSpeaking ? 0.24 : 0.12))
-                .frame(width: size * 1.28, height: size * 1.28)
-                .scaleEffect(pulse)
+                .fill(GhostTheme.mint.opacity(isSpeaking ? 0.28 : 0.14))
+                .frame(width: size * 1.35, height: size * 1.35)
+                .blur(radius: size * 0.22)
 
-            GhostBodyShape()
-                .fill(GhostTheme.accentGradient)
-                .frame(width: size * 0.78, height: size * 0.90)
-                .overlay(
-                    GhostBodyShape()
-                        .stroke(Color.white.opacity(0.40), lineWidth: 1.2)
+            ZStack {
+                UnevenRoundedRectangle(
+                    topLeadingRadius: size * 0.46,
+                    bottomLeadingRadius: size * 0.18,
+                    bottomTrailingRadius: size * 0.18,
+                    topTrailingRadius: size * 0.46,
+                    style: .continuous
                 )
-                .overlay {
-                    VStack(spacing: size * 0.08) {
-                        HStack(spacing: size * 0.16) {
-                            Capsule()
-                                .fill(GhostTheme.inkDeep)
-                                .frame(width: size * 0.09, height: size * 0.13)
-                            Capsule()
-                                .fill(GhostTheme.inkDeep)
-                                .frame(width: size * 0.09, height: size * 0.13)
-                        }
+                .fill(GhostTheme.accentGradient)
+                .frame(width: size * 0.78, height: size * 0.88)
+
+                VStack(spacing: size * 0.10) {
+                    HStack(spacing: size * 0.18) {
                         Capsule()
                             .fill(GhostTheme.inkDeep)
-                            .frame(
-                                width: size * (isSpeaking ? 0.18 : 0.12),
-                                height: max(size * 0.04, size * 0.16 * mouthOpen)
-                            )
+                            .frame(width: size * 0.09, height: size * 0.14)
+                        Capsule()
+                            .fill(GhostTheme.inkDeep)
+                            .frame(width: size * 0.09, height: size * 0.14)
                     }
-                    .offset(y: -size * 0.06)
+                    Capsule()
+                        .fill(GhostTheme.inkDeep)
+                        .frame(width: size * 0.18, height: max(size * 0.05, size * 0.16 * mouthOpen))
                 }
-                .rotationEffect(.degrees(tilt))
-                .offset(y: bob)
-                .shadow(color: GhostTheme.mint.opacity(0.32), radius: 12, y: 5)
+                .offset(y: -size * 0.04)
+            }
+            .scaleEffect(pulse)
+            .offset(y: bob)
         }
-        .frame(width: size * 1.35, height: size * 1.35)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(isSpeaking ? "Eight mascot speaking" : (isThinking ? "Eight mascot thinking" : "Eight mascot"))
-    }
-}
-
-struct GhostBodyShape: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        let w = rect.width
-        let h = rect.height
-        let domeRadius = w / 2
-
-        path.move(to: CGPoint(x: 0, y: domeRadius))
-        path.addArc(
-            center: CGPoint(x: domeRadius, y: domeRadius),
-            radius: domeRadius,
-            startAngle: .degrees(180),
-            endAngle: .degrees(0),
-            clockwise: false
-        )
-        path.addLine(to: CGPoint(x: w, y: h * 0.88))
-
-        let waveWidth = w / 3
-        for index in 0..<3 {
-            let startX = w - CGFloat(index) * waveWidth
-            let midX = startX - waveWidth * 0.5
-            let endX = startX - waveWidth
-            path.addQuadCurve(
-                to: CGPoint(x: midX, y: h),
-                control: CGPoint(x: startX - waveWidth * 0.22, y: h)
-            )
-            path.addQuadCurve(
-                to: CGPoint(x: endX, y: h * 0.86),
-                control: CGPoint(x: midX - waveWidth * 0.25, y: h * 0.78)
-            )
-        }
-
-        path.closeSubpath()
-        return path
+        .frame(width: size * 1.4, height: size * 1.4)
+        .accessibilityLabel(isSpeaking ? "Ghost coach speaking" : "Ghost coach")
     }
 }
 

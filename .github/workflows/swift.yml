@@ -8,25 +8,30 @@ on:
 
 jobs:
   test:
-    name: Verify Swift package & logic tests
+    name: Logic tests
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v5
 
-      - name: Typecheck all Swift app & theme files against iOS Simulator SDK
+      - name: Run reminder logic tests
+        run: swift test --disable-sandbox -v
+
+  typecheck:
+    name: Typecheck all Swift files
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Typecheck iOS Swift sources and theme
         run: |
+          set -euo pipefail
           SDK_PATH="$(xcrun --sdk iphonesimulator --show-sdk-path)"
-          ARCH="$(uname -m)"
-          xcrun swiftc -typecheck \
-            -sdk "$SDK_PATH" \
-            -target "${ARCH}-apple-ios17.0-simulator" \
-            -parse-as-library \
+          xcrun --sdk iphonesimulator swiftc \
+            -typecheck \
+            -sdk "${SDK_PATH}" \
+            -target arm64-apple-ios17.0-simulator \
             ReadyByEight/AlarmModels.swift \
             ReadyByEight/AppStore.swift \
             ReadyByEight/CoachView.swift \
             ReadyByEight/ReadyByEightApp.swift \
             GhostTheme.swift
-
-      - name: Run reminder logic tests
-        run: swift test --disable-sandbox -v
-
