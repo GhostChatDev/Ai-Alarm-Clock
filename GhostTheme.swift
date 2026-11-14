@@ -4,8 +4,8 @@ import SwiftUI
 /// iOS 17+, Swift 6. Add this file to the ReadyByEight app target to use it.
 ///
 /// Performance notes:
-/// - `GhostAurora(animated:)` renders static by default. Animated mode targets 60 fps
-///   of blurred layers, so it is opt-in and skipped when Reduce Motion is on.
+/// - `GhostAurora(animated:)` renders static by default. Animated mode runs at 60 fps
+///   and skips continuous motion when Reduce Motion is enabled.
 /// - Glow uses `shadow`, which the compositor caches; avoid animating it per frame.
 /// - Cards use one material layer plus one hairline border: no extra blend passes.
 enum GhostTheme {
@@ -247,85 +247,111 @@ struct GhostChip: View {
     }
 }
 
-// MARK: - Speaking mascot
+// MARK: - 60 fps Speaking Ghost Mascot
 
-/// A visual speaking indicator, not an audio or lip-sync signal.
-/// Pass the store's `isCoachSpeaking`; reduced motion keeps the mascot static.
 struct GhostMascot: View {
-    let isSpeaking: Bool
+    var isSpeaking: Bool
+    var isThinking: Bool = false
+    var size: CGFloat = 64
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    init(isSpeaking: Bool = false) {
-        self.isSpeaking = isSpeaking
-    }
-
     var body: some View {
-        Group {
-            if isSpeaking && !reduceMotion {
-                TimelineView(.animation(minimumInterval: 1.0 / 60.0)) { context in
-                    drawing(time: context.date.timeIntervalSinceReferenceDate, animated: true)
+        if !reduceMotion && (isSpeaking || isThinking) {
+            TimelineView(.animation(minimumInterval: 1.0 / 60.0)) { context in
+                mascotCanvas(time: context.date.timeIntervalSinceReferenceDate)
+            }
+        } else {
+            mascotCanvas(time: 0)
+        }
+    }
+
+    private func mascotCanvas(time: TimeInterval) -> some View {
+        let active = !reduceMotion && (isSpeaking || isThinking)
+        let bob = active ? CGFloat(sin(time * (isSpeaking ? 6.5 : 3.0))) * (size * 0.055) : 0
+        let tilt = active ? sin(time * (isSpeaking ? 5.2 : 2.2)) * (isSpeaking ? 4.5 : 2.0) : 0
+        let mouthOpen: CGFloat = (!reduceMotion && isSpeaking)
+            ? CGFloat(0.35 + 0.65 * abs(sin(time * 11.0)))
+            : (isSpeaking ? 0.6 : 0.15)
+        let pulse: CGFloat = (!reduceMotion && isSpeaking)
+            ? CGFloat(1.0 + 0.08 * sin(time * 9.0))
+            : 1.0
+
+        return ZStack {
+            Circle()
+                .fill(GhostTheme.mint.opacity(isSpeaking ? 0.24 : 0.12))
+                .frame(width: size * 1.28, height: size * 1.28)
+                .scaleEffect(pulse)
+
+            GhostBodyShape()
+                .fill(GhostTheme.accentGradient)
+                .frame(width: size * 0.78, height: size * 0.90)
+                .overlay(
+                    GhostBodyShape()
+                        .stroke(Color.white.opacity(0.40), lineWidth: 1.2)
+                )
+                .overlay {
+                    VStack(spacing: size * 0.08) {
+                        HStack(spacing: size * 0.16) {
+                            Capsule()
+                                .fill(GhostTheme.inkDeep)
+                                .frame(width: size * 0.09, height: size * 0.13)
+                            Capsule()
+                                .fill(GhostTheme.inkDeep)
+                                .frame(width: size * 0.09, height: size * 0.13)
+                        }
+                        Capsule()
+                            .fill(GhostTheme.inkDeep)
+                            .frame(
+                                width: size * (isSpeaking ? 0.18 : 0.12),
+                                height: max(size * 0.04, size * 0.16 * mouthOpen)
+                            )
+                    }
+                    .offset(y: -size * 0.06)
                 }
-            } else {
-                drawing(time: 0, animated: false)
-            }
+                .rotationEffect(.degrees(tilt))
+                .offset(y: bob)
+                .shadow(color: GhostTheme.mint.opacity(0.32), radius: 12, y: 5)
         }
-        .aspectRatio(1, contentMode: .fit)
-        .allowsHitTesting(false)
-        .accessibilityLabel(isSpeaking ? "Ghost coach is responding" : "Ghost coach")
+        .frame(width: size * 1.35, height: size * 1.35)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(isSpeaking ? "Eight mascot speaking" : (isThinking ? "Eight mascot thinking" : "Eight mascot"))
     }
+}
 
-    private func drawing(time: TimeInterval, animated: Bool) -> some View {
-        Canvas { context, size in
-            let unit = min(size.width, size.height)
-            let wave = animated ? sin(time * .pi * 4) : 0
-            let bob = animated ? sin(time * .pi * 2) * unit * 0.025 : 0
-            let width = unit * 0.66
-            let height = unit * 0.70
-            let origin = CGPoint(x: (size.width - width) / 2,
-                                 y: (size.height - height) / 2 + bob)
-            let body = CGRect(origin: origin, size: CGSize(width: width, height: height))
-            let path = ghostPath(in: body, wave: wave)
+struct GhostBodyShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let w = rect.width
+        let h = rect.height
+        let domeRadius = w / 2
 
-            context.fill(path, with: .color(GhostTheme.mint.opacity(0.14)))
-            context.stroke(path, with: .color(GhostTheme.mint), lineWidth: max(1.5, unit * 0.025))
+        path.move(to: CGPoint(x: 0, y: domeRadius))
+        path.addArc(
+            center: CGPoint(x: domeRadius, y: domeRadius),
+            radius: domeRadius,
+            startAngle: .degrees(180),
+            endAngle: .degrees(0),
+            clockwise: false
+        )
+        path.addLine(to: CGPoint(x: w, y: h * 0.88))
 
-            let eyeSize = CGSize(width: unit * 0.045, height: unit * (animated ? 0.065 : 0.05))
-            for xFactor in [0.40, 0.60] {
-                let eye = CGRect(x: size.width * xFactor - eyeSize.width / 2,
-                                 y: origin.y + height * 0.32,
-                                 width: eyeSize.width, height: eyeSize.height)
-                context.fill(Path(ellipseIn: eye), with: .color(GhostTheme.mintBright))
-            }
-
-            let mouthHeight = unit * (animated ? 0.055 + 0.035 * abs(wave) : 0.025)
-            let mouth = CGRect(x: size.width * 0.47,
-                               y: origin.y + height * 0.47,
-                               width: unit * 0.06, height: mouthHeight)
-            context.fill(Path(ellipseIn: mouth), with: .color(GhostTheme.mintBright))
+        let waveWidth = w / 3
+        for index in 0..<3 {
+            let startX = w - CGFloat(index) * waveWidth
+            let midX = startX - waveWidth * 0.5
+            let endX = startX - waveWidth
+            path.addQuadCurve(
+                to: CGPoint(x: midX, y: h),
+                control: CGPoint(x: startX - waveWidth * 0.22, y: h)
+            )
+            path.addQuadCurve(
+                to: CGPoint(x: endX, y: h * 0.86),
+                control: CGPoint(x: midX - waveWidth * 0.25, y: h * 0.78)
+            )
         }
-    }
 
-    private func ghostPath(in rect: CGRect, wave: Double) -> Path {
-        Path { path in
-            let left = rect.minX
-            let right = rect.maxX
-            let top = rect.minY
-            let bottom = rect.maxY
-            let waveOffset = rect.height * 0.025 * wave
-            path.move(to: CGPoint(x: left, y: bottom))
-            path.addLine(to: CGPoint(x: left, y: top + rect.width / 2))
-            path.addArc(center: CGPoint(x: rect.midX, y: top + rect.width / 2),
-                        radius: rect.width / 2,
-                        startAngle: .degrees(180), endAngle: .degrees(0), clockwise: false)
-            path.addLine(to: CGPoint(x: right, y: bottom))
-            path.addQuadCurve(to: CGPoint(x: rect.midX + rect.width / 6, y: bottom - waveOffset),
-                              control: CGPoint(x: rect.midX + rect.width / 3, y: bottom - rect.height * 0.10))
-            path.addQuadCurve(to: CGPoint(x: rect.midX - rect.width / 6, y: bottom + waveOffset),
-                              control: CGPoint(x: rect.midX, y: bottom + rect.height * 0.08))
-            path.addQuadCurve(to: CGPoint(x: left, y: bottom),
-                              control: CGPoint(x: rect.midX - rect.width / 3, y: bottom - rect.height * 0.10))
-            path.closeSubpath()
-        }
+        path.closeSubpath()
+        return path
     }
 }
 
