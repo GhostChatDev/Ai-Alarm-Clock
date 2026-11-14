@@ -9,8 +9,10 @@ final class AppStore {
     private(set) var state = SavedState()
     private(set) var busy = false
     private(set) var sending = false
+    private(set) var isCoachSpeaking = false
     private(set) var notificationsAllowed = false
     var error: String?
+    private var speakingTask: Task<Void, Never>?
     private let center = UNUserNotificationCenter.current()
     private var fileURL: URL {
         URL.applicationSupportDirectory.appending(path: "ReadyByEight/state.json")
@@ -28,7 +30,7 @@ final class AppStore {
     var challengeCompleted: Bool { state.completedDay == SavedState.dayKey() }
     var coachName: String {
         #if canImport(FoundationModels)
-        if #available(iOS 26.0, *), SystemLanguageModel.default.isAvailable {
+        if #available(iOS 26.0, *), case .available = SystemLanguageModel.default.availability {
             return "On-device AI · Private"
         }
         #endif
@@ -171,11 +173,12 @@ final class AppStore {
             self.error = "Couldn’t save your message. \(error.localizedDescription)"
             return
         }
-        let next = nextAlarm?.formatted(date: .abbreviated, time: .shortened)
-        var response = OfflineCoach.reply(to: text, nextAlarm: next)
+        let nextFormatted = nextAlarm?.formatted(date: .abbreviated, time: .shortened)
+        var response = OfflineCoach.reply(to: text, nextAlarm: nextFormatted)
         #if canImport(FoundationModels)
-        if #available(iOS 26.0, *), SystemLanguageModel.default.isAvailable {
+        if #available(iOS 26.0, *), case .available = SystemLanguageModel.default.availability {
             do {
+                isCoachSpeaking = true
                 let session = LanguageModelSession(instructions: """
                 You are Eight, a warm, concise morning coach. Use at most 90 words.
                 Offer one achievable step or challenge. Never shame people or give medical advice.
@@ -198,6 +201,19 @@ final class AppStore {
         candidate.messages = Array(candidate.messages.suffix(60))
         do { try persist(candidate) }
         catch { self.error = "Couldn’t save the reply. \(error.localizedDescription)" }
+        animateCoachSpeaking(for: response)
+    }
+
+    private func animateCoachSpeaking(for text: String) {
+        speakingTask?.cancel()
+        isCoachSpeaking = true
+        let wordCount = max(1, text.split(whereSeparator: \.isWhitespace).count)
+        let seconds = min(max(Double(wordCount) * 0.22, 1.5), 6.0)
+        speakingTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(seconds))
+            guard !Task.isCancelled else { return }
+            self?.isCoachSpeaking = false
+        }
     }
 }
 

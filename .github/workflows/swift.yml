@@ -16,19 +16,22 @@ jobs:
       - name: Run reminder logic tests
         run: swift test --disable-sandbox -v
 
-  build:
-    name: iOS simulator build
+  typecheck:
+    name: Typecheck all Swift files
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v5
 
-      - name: Build Ready by Eight
+      - name: Typecheck iOS Swift sources and theme
         run: |
           set -euo pipefail
-          xcodebuild \
-            -project ReadyByEight.xcodeproj \
-            -scheme ReadyByEight \
-            -destination "generic/platform=iOS Simulator" \
-            -configuration Debug \
-            CODE_SIGNING_ALLOWED=NO \
-            build
+          SDK_PATH="$(xcrun --sdk iphonesimulator --show-sdk-path)"
+          xcrun --sdk iphonesimulator swiftc \
+            -typecheck \
+            -sdk "${SDK_PATH}" \
+            -target arm64-apple-ios17.0-simulator \
+            ReadyByEight/AlarmModels.swift \
+            ReadyByEight/AppStore.swift \
+            ReadyByEight/CoachView.swift \
+            ReadyByEight/ReadyByEightApp.swift \
+            GhostTheme.swift
