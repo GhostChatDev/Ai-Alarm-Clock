@@ -16,22 +16,22 @@ jobs:
       - name: Run reminder logic tests
         run: swift test --disable-sandbox -v
 
-  typecheck:
-    name: Typecheck all Swift files
+  build:
+    name: iOS simulator build
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v5
 
-      - name: Typecheck iOS Swift sources and theme
+      - name: Build Ready by Eight
         run: |
-          set -euo pipefail
-          SDK_PATH="$(xcrun --sdk iphonesimulator --show-sdk-path)"
-          xcrun --sdk iphonesimulator swiftc \
-            -typecheck \
-            -sdk "${SDK_PATH}" \
-            -target arm64-apple-ios17.0-simulator \
-            ReadyByEight/AlarmModels.swift \
-            ReadyByEight/AppStore.swift \
-            ReadyByEight/CoachView.swift \
-            ReadyByEight/ReadyByEightApp.swift \
-            GhostTheme.swift
+          set -o pipefail
+          xcodebuild \
+            -project ReadyByEight.xcodeproj \
+            -scheme ReadyByEight \
+            -destination 'generic/platform=iOS Simulator' \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build 2>&1 | tee build.log | grep -E "error:|BUILD (SUCCEEDED|FAILED)|\*\* " || true
+          grep -q "BUILD SUCCEEDED" build.log
