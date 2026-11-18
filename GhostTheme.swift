@@ -1,42 +1,54 @@
 import SwiftUI
+import AVFoundation
+import AudioToolbox
 
-/// Cute, friendly design tokens and reusable effects for the Ghost alarm app.
-/// iOS 17+, Swift 6. Add this file to the app target to use it.
-///
-/// Performance notes:
-/// - `GhostAurora(animated:)` renders static by default. Animated mode runs at 60 fps
-///   when opted in and is skipped when Reduce Motion is on.
-/// - `GhostMascot(isSpeaking:)` blinks, bobs, and speaks reactively at 60 fps.
-/// - Cards use one fill layer plus one hairline stroke: no extra blend passes.
+/// Exact reference design tokens, glowing 3D Ghost mascot, sleep music synthesizer,
+/// device alarm tone engine, and on-device AVSpeechSynthesizer TTS for Ghost Coach.
+/// iOS 17+, Swift 6.
 enum GhostTheme {
 
-    // MARK: - Palette (cute pastel ghost on dark)
+    // MARK: - Exact Reference Palette
 
-    static let ghostWhite = Color(red: 0.97, green: 0.98, blue: 1.0)
-    static let ghostGlow = Color(red: 0.92, green: 0.95, blue: 1.0)
-    static let mint = Color(red: 0.76, green: 0.91, blue: 0.62)
-    static let mintBright = Color(red: 0.85, green: 0.98, blue: 0.72)
-    static let teal = Color(red: 0.35, green: 0.72, blue: 0.68)
-    static let pink = Color(red: 1.0, green: 0.78, blue: 0.86)
-    static let pinkSoft = Color(red: 1.0, green: 0.88, blue: 0.94)
-    static let purple = Color(red: 0.68, green: 0.62, blue: 0.96)
-    static let purpleSoft = Color(red: 0.78, green: 0.72, blue: 1.0)
-    static let yellow = Color(red: 1.0, green: 0.92, blue: 0.55)
+    static let inkDeep = Color(red: 0.055, green: 0.051, blue: 0.090)        // #0E0D17
+    static let ink = Color(red: 0.078, green: 0.071, blue: 0.125)            // #141220
+    static let inkRaised = Color(red: 0.125, green: 0.118, blue: 0.188)      // #201E30
+    static let cardSurface = Color(red: 0.153, green: 0.149, blue: 0.216)    // #272637
 
-    static let inkDeep = Color(red: 0.02, green: 0.025, blue: 0.04)
-    static let ink = Color(red: 0.05, green: 0.06, blue: 0.08)
-    static let inkRaised = Color(red: 0.09, green: 0.105, blue: 0.125)
-    static let textPrimary = Color.white.opacity(0.94)
-    static let textSecondary = Color.white.opacity(0.55)
-    static let hairline = Color.white.opacity(0.09)
-    static let glass = Color.white.opacity(0.05)
-    static let glassStrong = Color.white.opacity(0.09)
+    static let lavenderTitle = Color(red: 0.690, green: 0.569, blue: 0.973)  // #B091F8
+    static let purple = Color(red: 0.655, green: 0.545, blue: 0.980)         // #A78BFA
+    static let purpleDeep = Color(red: 0.451, green: 0.306, blue: 0.910)     // #734EE8
+    static let purpleSoft = Color(red: 0.859, green: 0.816, blue: 0.992)     // #DBD0FD
+    static let lilacPill = Color(red: 0.784, green: 0.725, blue: 0.988)      // #C8B9FC
+
+    static let weatherTop = Color(red: 0.388, green: 0.275, blue: 0.918)     // #6346EA
+    static let weatherBottom = Color(red: 0.486, green: 0.349, blue: 0.933)  // #7C59EE
+
+    static let planCardBg = Color(red: 0.188, green: 0.141, blue: 0.345)     // #302458
+    static let chatBubbleCoach = Color(red: 0.412, green: 0.396, blue: 0.525)// #696586
+    static let chatBubbleUser = Color(red: 0.435, green: 0.302, blue: 0.898) // #6F4CE5
+
+    static let warmCream = Color(red: 0.945, green: 0.855, blue: 0.733)      // #F1DABB
+    static let warmGold = Color(red: 0.961, green: 0.871, blue: 0.702)       // #F5DEB3
+    static let ghostWhite = Color(red: 0.975, green: 0.975, blue: 1.0)
+    static let ghostGlow = Color(red: 0.835, green: 0.784, blue: 1.0)
+    static let pinkSoft = Color(red: 0.965, green: 0.659, blue: 0.784)
+    static let pink = Color(red: 0.957, green: 0.447, blue: 0.714)
+    static let mint = Color(red: 0.655, green: 0.545, blue: 0.980)          // Kept alias for compatibility
+    static let mintBright = Color(red: 0.784, green: 0.725, blue: 0.988)
+    static let teal = Color(red: 0.486, green: 0.349, blue: 0.933)
+    static let yellow = Color(red: 0.984, green: 0.827, blue: 0.451)
+
+    static let textPrimary = Color.white.opacity(0.96)
+    static let textSecondary = Color(red: 0.655, green: 0.639, blue: 0.769)  // #A7A3C4
+    static let hairline = Color.white.opacity(0.11)
+    static let glass = Color.white.opacity(0.06)
+    static let glassStrong = Color.white.opacity(0.11)
 
     // MARK: - Metrics
 
     enum Radius {
         static let card: CGFloat = 26
-        static let chip: CGFloat = 14
+        static let chip: CGFloat = 18
         static let sheet: CGFloat = 34
         static let ghost: CGFloat = 30
     }
@@ -45,37 +57,51 @@ enum GhostTheme {
         static let xs: CGFloat = 6
         static let s: CGFloat = 10
         static let m: CGFloat = 16
-        static let l: CGFloat = 24
-        static let xl: CGFloat = 32
+        static let l: CGFloat = 22
+        static let xl: CGFloat = 30
     }
 
     enum Motion {
         static let press = Animation.spring(response: 0.28, dampingFraction: 0.75)
         static let fade = Animation.easeOut(duration: 0.24)
-        static let bounce = Animation.spring(response: 0.45, dampingFraction: 0.7)
+        static let bounce = Animation.spring(response: 0.42, dampingFraction: 0.74)
     }
 
     // MARK: - Gradients
 
     static var accentGradient: LinearGradient {
-        LinearGradient(colors: [mintBright, teal], startPoint: .topLeading, endPoint: .bottomTrailing)
+        LinearGradient(colors: [lilacPill, purple], startPoint: .topLeading, endPoint: .bottomTrailing)
+    }
+
+    static var weatherGradient: LinearGradient {
+        LinearGradient(colors: [weatherTop, weatherBottom], startPoint: .topLeading, endPoint: .bottomTrailing)
     }
 
     static var ghostGradient: LinearGradient {
-        LinearGradient(colors: [ghostWhite, ghostGlow], startPoint: .topLeading, endPoint: .bottomTrailing)
+        LinearGradient(
+            colors: [Color.white, Color(red: 0.91, green: 0.88, blue: 0.99), Color(red: 0.79, green: 0.73, blue: 0.97)],
+            startPoint: .top,
+            endPoint: .bottom
+        )
     }
 
     static var cardGradient: LinearGradient {
-        LinearGradient(colors: [Color.white.opacity(0.08), Color.white.opacity(0.02)],
-                       startPoint: .topLeading, endPoint: .bottomTrailing)
+        LinearGradient(
+            colors: [Color(red: 0.16, green: 0.15, blue: 0.23), Color(red: 0.12, green: 0.11, blue: 0.18)],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
     }
 
     static var borderGradient: LinearGradient {
-        LinearGradient(colors: [Color.white.opacity(0.20), Color.white.opacity(0.03)],
-                       startPoint: .topLeading, endPoint: .bottomTrailing)
+        LinearGradient(
+            colors: [purple.opacity(0.55), Color.white.opacity(0.08)],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
     }
 
-    // MARK: - Background with soft aurora glow
+    // MARK: - Background with soft purple aurora glow
 
     struct GhostAurora: View {
         var animated: Bool = false
@@ -87,7 +113,7 @@ enum GhostTheme {
                                startPoint: .top, endPoint: .bottom)
 
                 if animated && !reduceMotion {
-                    TimelineView(.animation(minimumInterval: 1.0 / 60.0)) { context in
+                    TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { context in
                         let phase = context.date.timeIntervalSinceReferenceDate
                         layers(phase: phase)
                     }
@@ -104,30 +130,24 @@ enum GhostTheme {
             let drift = CGFloat(sin(phase * 0.35))
             return ZStack {
                 Circle()
-                    .fill(GhostTheme.mint.opacity(0.18))
+                    .fill(GhostTheme.purpleDeep.opacity(0.24))
                     .frame(width: 340, height: 340)
-                    .blur(radius: 100)
-                    .offset(x: -120 + drift * 24, y: -260 + drift * 18)
+                    .blur(radius: 95)
+                    .offset(x: -60 + drift * 18, y: -250 + drift * 14)
 
                 Circle()
-                    .fill(GhostTheme.purple.opacity(0.16))
+                    .fill(GhostTheme.purple.opacity(0.18))
                     .frame(width: 300, height: 300)
                     .blur(radius: 100)
-                    .offset(x: 140 - drift * 20, y: 250 + drift * 16)
+                    .offset(x: 110 - drift * 16, y: 180 + drift * 12)
 
-                Circle()
-                    .fill(GhostTheme.pink.opacity(0.12))
-                    .frame(width: 260, height: 260)
-                    .blur(radius: 90)
-                    .offset(x: -60, y: 120)
-
-                RadialGradient(colors: [.clear, GhostTheme.inkDeep.opacity(0.9)],
-                               center: .center, startRadius: 100, endRadius: 520)
+                RadialGradient(colors: [.clear, GhostTheme.inkDeep.opacity(0.88)],
+                               center: .center, startRadius: 110, endRadius: 540)
             }
         }
     }
 
-    // MARK: - Glass card (one fill layer + one hairline stroke, cached shadows)
+    // MARK: - Glass & Glow Cards
 
     struct GhostCard: ViewModifier {
         var radius: CGFloat = GhostTheme.Radius.card
@@ -141,29 +161,30 @@ enum GhostTheme {
                 }
                 .overlay {
                     RoundedRectangle(cornerRadius: radius, style: .continuous)
-                        .strokeBorder(GhostTheme.borderGradient, lineWidth: 1)
+                        .strokeBorder(
+                            glow
+                            ? LinearGradient(colors: [GhostTheme.purple.opacity(0.85), GhostTheme.purpleDeep.opacity(0.45)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                            : LinearGradient(colors: [Color.white.opacity(0.14), Color.white.opacity(0.04)], startPoint: .topLeading, endPoint: .bottomTrailing),
+                            lineWidth: glow ? 1.5 : 1
+                        )
                 }
                 .compositingGroup()
-                .shadow(color: Color.black.opacity(0.40), radius: 20, x: 0, y: 12)
-                .shadow(color: glow ? GhostTheme.mint.opacity(0.28) : .clear,
-                        radius: glow ? 28 : 0)
+                .shadow(color: Color.black.opacity(0.42), radius: 18, x: 0, y: 10)
+                .shadow(color: glow ? GhostTheme.purple.opacity(0.38) : .clear,
+                        radius: glow ? 24 : 0)
         }
     }
 
-    // MARK: - Press feedback for every tappable surface
-
     struct GhostPressStyle: ButtonStyle {
-        var scale: CGFloat = 0.96
+        var scale: CGFloat = 0.97
 
         func makeBody(configuration: Configuration) -> some View {
             configuration.label
                 .scaleEffect(configuration.isPressed ? scale : 1)
-                .opacity(configuration.isPressed ? 0.9 : 1)
+                .opacity(configuration.isPressed ? 0.92 : 1)
                 .animation(GhostTheme.Motion.press, value: configuration.isPressed)
         }
     }
-
-    // MARK: - Light sweep (opt-in; honours Reduce Motion)
 
     struct GhostShimmer: ViewModifier {
         var active: Bool = true
@@ -173,7 +194,7 @@ enum GhostTheme {
         func body(content: Content) -> some View {
             content.overlay {
                 if active && !reduceMotion {
-                    LinearGradient(colors: [.clear, Color.white.opacity(0.22), .clear],
+                    LinearGradient(colors: [.clear, Color.white.opacity(0.18), .clear],
                                    startPoint: .leading, endPoint: .trailing)
                         .scaleEffect(x: 0.5, y: 1)
                         .offset(x: phase * 260)
@@ -182,7 +203,7 @@ enum GhostTheme {
                         .allowsHitTesting(false)
                         .onAppear {
                             phase = -1
-                            withAnimation(.linear(duration: 2.0).repeatForever(autoreverses: false)) {
+                            withAnimation(.linear(duration: 2.2).repeatForever(autoreverses: false)) {
                                 phase = 1
                             }
                         }
@@ -191,25 +212,27 @@ enum GhostTheme {
         }
     }
 
-    // MARK: - Composable pieces
+    // MARK: - Header & Pill Buttons
 
     struct GhostHeader: View {
         let title: String
         let subtitle: String?
+        var titleColor: Color = GhostTheme.textPrimary
 
-        init(_ title: String, subtitle: String? = nil) {
+        init(_ title: String, subtitle: String? = nil, titleColor: Color = GhostTheme.textPrimary) {
             self.title = title
             self.subtitle = subtitle
+            self.titleColor = titleColor
         }
 
         var body: some View {
-            VStack(alignment: .leading, spacing: GhostTheme.Space.xs) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(title)
-                    .font(.system(.title2, design: .rounded).weight(.semibold))
-                    .foregroundStyle(GhostTheme.textPrimary)
+                    .font(.system(size: 30, weight: .bold, design: .rounded))
+                    .foregroundStyle(titleColor)
                 if let subtitle {
                     Text(subtitle)
-                        .font(.subheadline)
+                        .font(.system(size: 16, weight: .regular))
                         .foregroundStyle(GhostTheme.textSecondary)
                 }
             }
@@ -233,268 +256,634 @@ enum GhostTheme {
 
         var body: some View {
             Button(action: action) {
-                HStack(spacing: GhostTheme.Space.xs) {
+                HStack(spacing: 8) {
                     if let systemImage { Image(systemName: systemImage) }
-                    Text(title).font(.subheadline.weight(.semibold))
+                    Text(title)
+                        .font(.system(size: 18, weight: .semibold, design: .rounded))
                 }
-                .padding(.horizontal, 18)
-                .padding(.vertical, 13)
+                .padding(.horizontal, 22)
+                .frame(height: 54)
                 .frame(maxWidth: prominent ? .infinity : nil)
                 .background {
                     if prominent {
-                        GhostTheme.accentGradient
+                        Capsule()
+                            .fill(GhostTheme.accentGradient)
                     } else {
-                        GhostTheme.glass
+                        Capsule()
+                            .fill(Color.white.opacity(0.03))
+                            .overlay(
+                                Capsule()
+                                    .strokeBorder(GhostTheme.purple.opacity(0.65), lineWidth: 1.2)
+                            )
                     }
                 }
-                .foregroundStyle(prominent ? Color.black : GhostTheme.textPrimary)
-                .clipShape(Capsule())
+                .foregroundStyle(prominent ? Color(red: 0.08, green: 0.06, blue: 0.14) : GhostTheme.purpleSoft)
                 .compositingGroup()
-                .shadow(color: Color.black.opacity(0.25), radius: 10, x: 0, y: 6)
+                .shadow(color: prominent ? GhostTheme.purple.opacity(0.42) : .clear, radius: 18, x: 0, y: 6)
             }
             .buttonStyle(GhostPressStyle())
         }
     }
 
+    // MARK: - Custom Glowing Toggle (Exact Photo Match: Purple "ON" pill with white knob)
+
+    struct GhostAlarmToggle: View {
+        @Binding var isOn: Bool
+        var showOnLabel: Bool = true
+
+        var body: some View {
+            Button {
+                withAnimation(.spring(response: 0.28, dampingFraction: 0.76)) {
+                    isOn.toggle()
+                }
+            } label: {
+                ZStack(alignment: isOn ? .trailing : .leading) {
+                    Capsule()
+                        .fill(isOn ? GhostTheme.purple : Color.white.opacity(0.16))
+                        .frame(width: showOnLabel ? 68 : 56, height: 34)
+                        .shadow(color: isOn ? GhostTheme.purple.opacity(0.55) : .clear, radius: 10)
+
+                    if showOnLabel && isOn {
+                        Text("ON")
+                            .font(.system(size: 12, weight: .bold, design: .rounded))
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.leading, 11)
+                    }
+
+                    Circle()
+                        .fill(Color.white)
+                        .frame(width: 26, height: 26)
+                        .padding(4)
+                        .shadow(color: .black.opacity(0.25), radius: 3, x: 0, y: 2)
+                }
+                .frame(width: showOnLabel ? 68 : 56, height: 34)
+            }
+            .buttonStyle(GhostPressStyle(scale: 0.94))
+            .accessibilityLabel("Alarm toggle")
+            .accessibilityValue(isOn ? "On" : "Off")
+        }
+    }
+
+    // MARK: - Tab Bar Item (supports custom Ghost icon or SF Symbol)
+
     struct GhostTabItem: View {
         let icon: String
         let title: String
+        var isGhostIcon: Bool = false
         var isSelected: Bool = false
         let action: () -> Void
 
         var body: some View {
             Button(action: action) {
-                VStack(spacing: GhostTheme.Space.xs) {
-                    Image(systemName: icon)
-                        .font(.system(size: 22, weight: .medium))
-                        .symbolEffect(.bounce, value: isSelected)
-                    Text(title)
-                        .font(.caption2.weight(.semibold))
-                }
-                .foregroundStyle(isSelected ? GhostTheme.mint : GhostTheme.textSecondary)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-                .background {
-                    if isSelected {
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .fill(GhostTheme.glassStrong)
+                VStack(spacing: 5) {
+                    if isGhostIcon {
+                        GhostMiniBadge(isSelected: isSelected)
+                            .frame(width: 24, height: 24)
+                    } else {
+                        Image(systemName: icon)
+                            .font(.system(size: 21, weight: .semibold))
+                            .symbolEffect(.bounce, value: isSelected)
                     }
+                    Text(title)
+                        .font(.system(size: 11, weight: .semibold, design: .rounded))
                 }
+                .foregroundStyle(isSelected ? GhostTheme.purple : GhostTheme.textSecondary)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
             }
             .buttonStyle(GhostPressStyle(scale: 0.94))
         }
     }
 
-    // MARK: - Speaking Ghost Mascot (60 fps reactive animation)
+    struct GhostMiniBadge: View {
+        var isSelected: Bool = true
+        var body: some View {
+            ZStack {
+                UnevenRoundedRectangle(
+                    topLeadingRadius: 11,
+                    bottomLeadingRadius: 4,
+                    bottomTrailingRadius: 4,
+                    topTrailingRadius: 11,
+                    style: .continuous
+                )
+                .fill(isSelected ? GhostTheme.purple : GhostTheme.textSecondary.opacity(0.65))
+                .frame(width: 20, height: 22)
 
-    /// A cute, friendly ghost mascot.
-    /// - `isSpeaking`: mouth opens/closes, glow pulses, bob speeds up.
-    /// - Blinks naturally every few seconds when idle.
-    /// - Honours Reduce Motion (static pose).
+                HStack(spacing: 4) {
+                    Circle().fill(GhostTheme.inkDeep).frame(width: 3.2, height: 3.2)
+                    Circle().fill(GhostTheme.inkDeep).frame(width: 3.2, height: 3.2)
+                }
+                .offset(y: -1)
+            }
+        }
+    }
+
+    // MARK: - 3D Glowing Ghost Mascot (Exact Reference Photo Match)
+
+    enum GhostMood {
+        case cheerful
+        case winking
+        case happyClosedEyes
+        case sleepy
+    }
+
     struct GhostMascot: View {
         var isSpeaking: Bool = false
-        var size: CGFloat = 72
+        var size: CGFloat = 84
+        var mood: GhostMood = .cheerful
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
         @State private var blink: Bool = false
-        @State private var blush: Bool = false
+        @State private var floatUp: Bool = false
 
         var body: some View {
             ZStack {
-                // Outer glow
+                // Soft purple-lilac halo glow behind the ghost
                 Circle()
-                    .fill(GhostTheme.ghostGlow.opacity(isSpeaking ? 0.45 : 0.22))
-                    .frame(width: size * 1.5, height: size * 1.5)
-                    .blur(radius: size * 0.25)
-                    .scaleEffect(isSpeaking ? 1.15 : 1.0)
-                    .animation(isSpeaking
-                               ? Animation.easeInOut(duration: 1.2).repeatForever(autoreverses: true)
-                               : .default, value: isSpeaking)
+                    .fill(
+                        RadialGradient(
+                            colors: [
+                                GhostTheme.purple.opacity(isSpeaking ? 0.65 : 0.42),
+                                GhostTheme.purpleDeep.opacity(0.18),
+                                .clear
+                            ],
+                            center: .center,
+                            startRadius: size * 0.08,
+                            endRadius: size * 0.85
+                        )
+                    )
+                    .frame(width: size * 1.7, height: size * 1.7)
+                    .scaleEffect(isSpeaking ? 1.12 : 1.0)
 
-                // Ghost body
-                ghostBody
+                ZStack {
+                    // Little side arms
+                    Ellipse()
+                        .fill(GhostTheme.ghostGradient)
+                        .frame(width: size * 0.24, height: size * 0.15)
+                        .rotationEffect(.degrees(-28))
+                        .offset(x: -size * 0.36, y: size * 0.02)
 
-                // Face
-                face
+                    Ellipse()
+                        .fill(GhostTheme.ghostGradient)
+                        .frame(width: size * 0.24, height: size * 0.15)
+                        .rotationEffect(.degrees(28))
+                        .offset(x: size * 0.36, y: size * 0.02)
+
+                    // Sculpted ghost sheet silhouette with wavy bottom folds
+                    GhostSilhouetteShape()
+                        .fill(GhostTheme.ghostGradient)
+                        .frame(width: size * 0.84, height: size * 0.94)
+                        .overlay(
+                            GhostSilhouetteShape()
+                                .stroke(Color.white.opacity(0.65), lineWidth: 1.2)
+                        )
+                        .shadow(color: GhostTheme.purple.opacity(0.48), radius: size * 0.22, x: 0, y: size * 0.08)
+
+                    // Face details
+                    faceLayer
+                }
+                .offset(y: floatUp ? -4 : 4)
             }
-            .frame(width: size * 1.6, height: size * 1.6)
+            .frame(width: size * 1.35, height: size * 1.35)
             .accessibilityLabel(isSpeaking ? "Ghost coach speaking" : "Ghost coach")
             .onAppear {
-                if !reduceMotion {
-                    startBlink()
-                    startBlush()
+                guard !reduceMotion else { return }
+                withAnimation(.easeInOut(duration: 2.4).repeatForever(autoreverses: true)) {
+                    floatUp = true
                 }
             }
         }
 
-        // MARK: - Body
-
-        private var ghostBody: some View {
+        private var faceLayer: some View {
             ZStack {
-                UnevenRoundedRectangle(
-                    topLeadingRadius: size * 0.45,
-                    bottomLeadingRadius: size * 0.14,
-                    bottomTrailingRadius: size * 0.14,
-                    topTrailingRadius: size * 0.45,
-                    style: .continuous
-                )
-                .fill(GhostTheme.ghostGradient)
-                .frame(width: size * 0.82, height: size * 0.92)
-
-                // Little wavy bottom edge (ghost tail)
-                Path { path in
-                    let w = size * 0.82
-                    let h = size * 0.92
-                    let cx = w / 2
-                    path.move(to: CGPoint(x: 0, y: h * 0.55))
-                    path.addCurve(to: CGPoint(x: w * 0.25, y: h * 0.75),
-                                  control1: CGPoint(x: w * 0.08, y: h * 0.62),
-                                  control2: CGPoint(x: w * 0.16, y: h * 0.82))
-                    path.addCurve(to: CGPoint(x: cx, y: h * 0.68),
-                                  control1: CGPoint(x: w * 0.34, y: h * 0.68),
-                                  control2: CGPoint(x: cx - 6, y: h * 0.78))
-                    path.addCurve(to: CGPoint(x: w * 0.75, y: h * 0.75),
-                                  control1: CGPoint(x: cx + 6, y: h * 0.78),
-                                  control2: CGPoint(x: w * 0.66, y: h * 0.68))
-                    path.addCurve(to: CGPoint(x: w, y: h * 0.55),
-                                  control1: CGPoint(x: w * 0.92, y: h * 0.68),
-                                  control2: CGPoint(x: w, y: h * 0.55))
+                // Rosy cheeks
+                HStack(spacing: size * 0.28) {
+                    Ellipse()
+                        .fill(GhostTheme.pinkSoft.opacity(0.75))
+                        .frame(width: size * 0.13, height: size * 0.08)
+                        .blur(radius: 1.5)
+                    Ellipse()
+                        .fill(GhostTheme.pinkSoft.opacity(0.75))
+                        .frame(width: size * 0.13, height: size * 0.08)
+                        .blur(radius: 1.5)
                 }
-                .fill(GhostTheme.ghostGlow.opacity(0.55))
-                .frame(width: size * 0.82, height: size * 0.92)
-                .compositingGroup()
-            }
-            .offset(y: bobOffset)
-            .animation(
-                isSpeaking
-                ? Animation.easeInOut(duration: 0.55).repeatForever(autoreverses: true)
-                : Animation.easeInOut(duration: 3.0).repeatForever(autoreverses: true),
-                value: isSpeaking
-            )
-        }
+                .offset(y: -size * 0.02)
 
-        private var bobOffset: CGFloat {
-            // Driven by a phase that TimelineView updates; computed in face via geometry.
-            0
-        }
-
-        // MARK: - Face
-
-        private var face: some View {
-            ZStack {
                 // Eyes
-                HStack(spacing: size * 0.22) {
-                    eye
-                    eye
+                HStack(spacing: size * 0.18) {
+                    leftEye
+                    rightEye
                 }
-                .offset(y: -size * 0.06)
+                .offset(y: -size * 0.10)
 
-                // Smile
-                Capsule()
-                    .fill(GhostTheme.inkDeep.opacity(0.55))
-                    .frame(width: size * 0.28, height: size * 0.06)
-                    .offset(y: size * 0.10)
-
-                // Blush
-                HStack(spacing: size * 0.30) {
-                    Circle()
-                        .fill(GhostTheme.pinkSoft.opacity(blush ? 0.75 : 0.35))
-                        .frame(width: size * 0.16, height: size * 0.10)
-                    Circle()
-                        .fill(GhostTheme.pinkSoft.opacity(blush ? 0.75 : 0.35))
-                        .frame(width: size * 0.16, height: size * 0.10)
-                }
-                .offset(y: size * 0.02)
-            }
-            .overlay {
-                // Speaking mouth override
+                // Mouth (animated when speaking)
                 if isSpeaking && !reduceMotion {
-                    TimelineView(.animation(minimumInterval: 1.0 / 60.0)) { context in
-                        let time = context.date.timeIntervalSinceReferenceDate
-                        let mouthOpen = CGFloat(0.30 + 0.50 * abs(sin(time * 12.0)))
+                    TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { context in
+                        let t = context.date.timeIntervalSinceReferenceDate
+                        let open = CGFloat(0.35 + 0.65 * abs(sin(t * 11.0)))
                         Capsule()
-                            .fill(GhostTheme.inkDeep.opacity(0.70))
-                            .frame(width: size * 0.22, height: max(size * 0.04, size * 0.14 * mouthOpen))
-                            .offset(y: size * 0.10)
+                            .fill(GhostTheme.inkDeep.opacity(0.88))
+                            .frame(width: size * 0.13, height: max(size * 0.05, size * 0.13 * open))
+                            .offset(y: size * 0.01)
                     }
+                } else {
+                    GhostSmileArc()
+                        .stroke(GhostTheme.inkDeep.opacity(0.88), style: StrokeStyle(lineWidth: max(2, size * 0.032), lineCap: .round))
+                        .frame(width: size * 0.12, height: size * 0.06)
+                        .offset(y: size * 0.005)
                 }
             }
         }
 
-        private var eye: some View {
-            ZStack {
-                // White of eye
-                Capsule()
-                    .fill(GhostTheme.textPrimary)
-                    .frame(width: size * 0.14, height: size * 0.22)
-
-                // Pupil
-                Capsule()
-                    .fill(GhostTheme.inkDeep)
-                    .frame(width: size * 0.055, height: size * 0.10)
-                    .offset(x: size * 0.015)
-
-                // Blink lid (covers eye when blinking)
-                if !reduceMotion {
-                    TimelineView(.animation(minimumInterval: 1.0 / 60.0)) { _ in
-                        Capsule()
-                            .fill(GhostTheme.ghostGradient)
-                            .frame(width: size * 0.14, height: blink ? size * 0.24 : 0)
-                            .animation(.easeInOut(duration: 0.12), value: blink)
-                    }
+        @ViewBuilder
+        private var leftEye: some View {
+            if mood == .happyClosedEyes || blink {
+                GhostHappyEyeArc()
+                    .stroke(GhostTheme.inkDeep, style: StrokeStyle(lineWidth: max(2.2, size * 0.035), lineCap: .round))
+                    .frame(width: size * 0.11, height: size * 0.06)
+            } else {
+                ZStack(alignment: .topLeading) {
+                    Circle()
+                        .fill(GhostTheme.inkDeep)
+                        .frame(width: size * 0.105, height: size * 0.105)
+                    Circle()
+                        .fill(Color.white)
+                        .frame(width: size * 0.035, height: size * 0.035)
+                        .offset(x: size * 0.02, y: size * 0.02)
                 }
             }
         }
 
-        // MARK: - Animation drivers
-
-        private func startBlink() {
-            guard !reduceMotion else { return }
-            Task {
-                while !Task.isCancelled {
-                    try? await Task.sleep(for: .seconds(Double.random(in: 3.0...6.0)))
-                    guard !Task.isCancelled else { return }
-                    withAnimation(.easeInOut(duration: 0.12)) { blink = true }
-                    try? await Task.sleep(for: .milliseconds(120))
-                    withAnimation(.easeInOut(duration: 0.12)) { blink = false }
+        @ViewBuilder
+        private var rightEye: some View {
+            if mood == .winking || mood == .happyClosedEyes || blink {
+                GhostHappyEyeArc()
+                    .stroke(GhostTheme.inkDeep, style: StrokeStyle(lineWidth: max(2.2, size * 0.035), lineCap: .round))
+                    .frame(width: size * 0.11, height: size * 0.06)
+            } else {
+                ZStack(alignment: .topLeading) {
+                    Circle()
+                        .fill(GhostTheme.inkDeep)
+                        .frame(width: size * 0.105, height: size * 0.105)
+                    Circle()
+                        .fill(Color.white)
+                        .frame(width: size * 0.035, height: size * 0.035)
+                        .offset(x: size * 0.02, y: size * 0.02)
                 }
             }
         }
+    }
 
-        private func startBlush() {
-            guard !reduceMotion else { return }
-            Task {
-                while !Task.isCancelled {
-                    try? await Task.sleep(for: .seconds(Double.random(in: 5.0...9.0)))
-                    guard !Task.isCancelled else { return }
-                    withAnimation(.easeInOut(duration: 0.6)) { blush = true }
-                    try? await Task.sleep(for: .seconds(1.4))
-                    withAnimation(.easeInOut(duration: 0.6)) { blush = false }
-                }
-            }
+    struct GhostSilhouetteShape: Shape {
+        func path(in rect: CGRect) -> Path {
+            let w = rect.width
+            let h = rect.height
+            var path = Path()
+            path.move(to: CGPoint(x: w * 0.10, y: h * 0.46))
+            path.addQuadCurve(
+                to: CGPoint(x: w * 0.50, y: h * 0.02),
+                control: CGPoint(x: w * 0.10, y: h * 0.02)
+            )
+            path.addQuadCurve(
+                to: CGPoint(x: w * 0.90, y: h * 0.46),
+                control: CGPoint(x: w * 0.90, y: h * 0.02)
+            )
+            path.addCurve(
+                to: CGPoint(x: w * 0.96, y: h * 0.86),
+                control1: CGPoint(x: w * 0.91, y: h * 0.64),
+                control2: CGPoint(x: w * 0.98, y: h * 0.76)
+            )
+            // Wavy bottom hem (3 soft ghost ripples)
+            path.addQuadCurve(
+                to: CGPoint(x: w * 0.72, y: h * 0.88),
+                control: CGPoint(x: w * 0.86, y: h * 0.98)
+            )
+            path.addQuadCurve(
+                to: CGPoint(x: w * 0.50, y: h * 0.94),
+                control: CGPoint(x: w * 0.61, y: h * 0.80)
+            )
+            path.addQuadCurve(
+                to: CGPoint(x: w * 0.28, y: h * 0.88),
+                control: CGPoint(x: w * 0.39, y: h * 0.99)
+            )
+            path.addQuadCurve(
+                to: CGPoint(x: w * 0.04, y: h * 0.86),
+                control: CGPoint(x: w * 0.14, y: h * 0.97)
+            )
+            path.addCurve(
+                to: CGPoint(x: w * 0.10, y: h * 0.46),
+                control1: CGPoint(x: w * 0.02, y: h * 0.76),
+                control2: CGPoint(x: w * 0.09, y: h * 0.64)
+            )
+            path.closeSubpath()
+            return path
+        }
+    }
+
+    struct GhostHappyEyeArc: Shape {
+        func path(in rect: CGRect) -> Path {
+            var path = Path()
+            path.move(to: CGPoint(x: 0, y: rect.height * 0.85))
+            path.addQuadCurve(
+                to: CGPoint(x: rect.width, y: rect.height * 0.85),
+                control: CGPoint(x: rect.width * 0.5, y: -rect.height * 0.25)
+            )
+            return path
+        }
+    }
+
+    struct GhostSmileArc: Shape {
+        func path(in rect: CGRect) -> Path {
+            var path = Path()
+            path.move(to: CGPoint(x: 0, y: rect.height * 0.15))
+            path.addQuadCurve(
+                to: CGPoint(x: rect.width, y: rect.height * 0.15),
+                control: CGPoint(x: rect.width * 0.5, y: rect.height * 1.15)
+            )
+            return path
         }
     }
 }
 
-// MARK: - One-line adoption helpers
+// MARK: - View convenience extensions
 
 extension View {
-    /// Glass card: rounded fill + hairline border + soft shadow.
     func ghostCard(radius: CGFloat = GhostTheme.Radius.card, glow: Bool = false) -> some View {
         modifier(GhostTheme.GhostCard(radius: radius, glow: glow))
     }
 
-    /// Full-screen look: aurora background, text colour and accent tint.
-    func ghostScreen(animated: Bool = false) -> some View {
-        background(GhostTheme.GhostAurora(animated: animated))
-            .foregroundStyle(GhostTheme.textPrimary)
-            .tint(GhostTheme.mint)
-    }
-
-    func ghostShimmer(_ active: Bool = true) -> some View {
+    func ghostShimmer(active: Bool = true) -> some View {
         modifier(GhostTheme.GhostShimmer(active: active))
     }
 
-    func ghostGlow(_ color: Color = GhostTheme.mint, radius: CGFloat = 22) -> some View {
-        shadow(color: color.opacity(0.30), radius: radius)
+    func ghostScreen(animated: Bool = false) -> some View {
+        background { GhostTheme.GhostAurora(animated: animated) }
+            .preferredColorScheme(.dark)
+    }
+}
+
+// MARK: - On-Device Audio, Sleep Music, Alarm Tones & TTS Engine
+
+enum SleepTrack: String, CaseIterable, Codable, Identifiable {
+    case gentleRain = "Gentle Rain"
+    case cosmicDrift = "Cosmic Drift (432 Hz)"
+    case oceanWaves = "Night Ocean Waves"
+    case lavenderChimes = "Lavender Chimes"
+    case customDeviceTrack = "From Your Device"
+
+    var id: String { rawValue }
+    var icon: String {
+        switch self {
+        case .gentleRain: return "cloud.rain.fill"
+        case .cosmicDrift: return "sparkles"
+        case .oceanWaves: return "water.waves"
+        case .lavenderChimes: return "bell.and.waves.left.and.right.fill"
+        case .customDeviceTrack: return "music.note.list"
+        }
+    }
+    var subtitle: String {
+        switch self {
+        case .gentleRain: return "Soft pink-noise rain & distant warmth"
+        case .cosmicDrift: return "Deep binaural pad for restorative sleep"
+        case .oceanWaves: return "Rhythmic slow shoreline tide"
+        case .lavenderChimes: return "Warm harmonic chimes & ambient drone"
+        case .customDeviceTrack: return "Pick any song or audio file from your device"
+        }
+    }
+}
+
+enum DeviceAlarmTone: String, CaseIterable, Codable, Identifiable {
+    case auroraChime = "Aurora Chime"
+    case radarClassic = "Device Radar"
+    case gentleHarp = "Sunrise Harp"
+    case cosmicBell = "Cosmic Bell"
+    case customDeviceTone = "Custom Device Audio"
+
+    var id: String { rawValue }
+    var systemSoundID: SystemSoundID {
+        switch self {
+        case .auroraChime: return 1005
+        case .radarClassic: return 1009
+        case .gentleHarp: return 1013
+        case .cosmicBell: return 1016
+        case .customDeviceTone: return 1005
+        }
+    }
+}
+
+@MainActor
+final class GhostAudioController: NSObject, AVSpeechSynthesizerDelegate {
+    static let shared = GhostAudioController()
+
+    private let synthesizer = AVSpeechSynthesizer()
+    private var audioEngine: AVAudioEngine?
+    private var sourceNode: AVAudioSourceNode?
+    private var customAudioPlayer: AVAudioPlayer?
+    private var alarmTimer: Timer?
+    private var phase1: Double = 0
+    private var phase2: Double = 0
+    private var lfoPhase: Double = 0
+    private var noiseSeed: UInt64 = 0x123456789ABCDEF
+
+    var onSpeechStateChange: ((Bool) -> Void)?
+
+    private override init() {
+        super.init()
+        synthesizer.delegate = self
+    }
+
+    // MARK: - Device TTS (AVSpeechSynthesizer)
+
+    func availableVoices() -> [AVSpeechSynthesisVoice] {
+        let english = AVSpeechSynthesisVoice.speechVoices().filter { $0.language.hasPrefix("en") }
+        return english.isEmpty ? AVSpeechSynthesisVoice.speechVoices() : english
+    }
+
+    func speak(_ text: String, voiceIdentifier: String? = nil, rate: Float = 0.49) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        if synthesizer.isSpeaking {
+            synthesizer.stopSpeaking(at: .immediate)
+        }
+        configureAudioSessionForPlayback()
+        let utterance = AVSpeechUtterance(string: trimmed)
+        if let id = voiceIdentifier, let voice = AVSpeechSynthesisVoice(identifier: id) {
+            utterance.voice = voice
+        } else {
+            utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
+        }
+        utterance.rate = min(max(rate, 0.35), 0.62)
+        utterance.pitchMultiplier = 1.05
+        onSpeechStateChange?(true)
+        synthesizer.speak(utterance)
+    }
+
+    func stopSpeaking() {
+        if synthesizer.isSpeaking {
+            synthesizer.stopSpeaking(at: .immediate)
+        }
+        onSpeechStateChange?(false)
+    }
+
+    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
+        Task { @MainActor in
+            self.onSpeechStateChange?(false)
+        }
+    }
+
+    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
+        Task { @MainActor in
+            self.onSpeechStateChange?(false)
+        }
+    }
+
+    // MARK: - Sleep Music (Procedural AVAudioEngine + Custom Device Audio File)
+
+    func startSleepMusic(track: SleepTrack, customFileURL: URL?, volume: Float) {
+        stopSleepMusic()
+        configureAudioSessionForPlayback()
+
+        if track == .customDeviceTrack, let url = customFileURL {
+            let accessed = url.startAccessingSecurityScopedResource()
+            defer { if accessed { url.stopAccessingSecurityScopedResource() } }
+            if let player = try? AVAudioPlayer(contentsOf: url) {
+                player.numberOfLoops = -1
+                player.volume = volume
+                player.prepareToPlay()
+                player.play()
+                customAudioPlayer = player
+                return
+            }
+        }
+
+        let engine = AVAudioEngine()
+        let mainMixer = engine.mainMixerNode
+        let outputFormat = mainMixer.outputFormat(forBus: 0)
+        let sampleRate = outputFormat.sampleRate > 0 ? outputFormat.sampleRate : 44_100
+        let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1) ?? outputFormat
+
+        var p1 = 0.0
+        var p2 = 0.0
+        var lfo = 0.0
+        var lpState = 0.0
+        var rng: UInt64 = 0x9E3779B97F4A7C15
+
+        let node = AVAudioSourceNode(format: format) { _, _, frameCount, audioBufferList -> OSStatus in
+            let ablPointer = UnsafeMutableAudioBufferListPointer(audioBufferList)
+            for frame in 0..<Int(frameCount) {
+                rng ^= rng << 13
+                rng ^= rng >> 7
+                rng ^= rng << 17
+                let white = (Double(rng & 0xFFFF) / 32768.0) - 1.0
+                lpState = lpState * 0.94 + white * 0.06
+
+                let sample: Double
+                switch track {
+                case .gentleRain:
+                    let swell = 0.65 + 0.35 * sin(lfo)
+                    sample = lpState * 0.24 * swell + 0.04 * sin(p1)
+                    p1 += 2.0 * .pi * 174.0 / sampleRate
+                    lfo += 2.0 * .pi * 0.12 / sampleRate
+                case .cosmicDrift, .customDeviceTrack:
+                    let drone1 = sin(p1) * 0.16
+                    let drone2 = sin(p2) * 0.12
+                    let shimmer = lpState * 0.04
+                    sample = (drone1 + drone2 + shimmer) * (0.75 + 0.25 * sin(lfo))
+                    p1 += 2.0 * .pi * 216.0 / sampleRate
+                    p2 += 2.0 * .pi * 218.5 / sampleRate
+                    lfo += 2.0 * .pi * 0.08 / sampleRate
+                case .oceanWaves:
+                    let waveEnvelope = max(0.08, 0.5 + 0.5 * sin(lfo))
+                    sample = lpState * 0.32 * waveEnvelope
+                    lfo += 2.0 * .pi * 0.16 / sampleRate
+                case .lavenderChimes:
+                    let bell = sin(p1) * exp(-fmod(lfo, 1.0) * 3.5) * 0.15
+                    let pad = sin(p2) * 0.11
+                    sample = bell + pad + lpState * 0.03
+                    p1 += 2.0 * .pi * 528.0 / sampleRate
+                    p2 += 2.0 * .pi * 264.0 / sampleRate
+                    lfo += 0.45 / sampleRate
+                }
+
+                let clamped = Float(max(-0.8, min(0.8, sample))) * volume
+                for buffer in ablPointer {
+                    let buf = buffer.mData?.assumingMemoryBound(to: Float.self)
+                    buf?[frame] = clamped
+                }
+            }
+            return noErr
+        }
+
+        engine.attach(node)
+        engine.connect(node, to: mainMixer, format: format)
+        do {
+            try engine.start()
+            self.audioEngine = engine
+            self.sourceNode = node
+        } catch {
+            self.audioEngine = nil
+        }
+    }
+
+    func updateSleepVolume(_ volume: Float) {
+        customAudioPlayer?.volume = volume
+        audioEngine?.mainMixerNode.outputVolume = volume
+    }
+
+    func stopSleepMusic() {
+        customAudioPlayer?.stop()
+        customAudioPlayer = nil
+        if let engine = audioEngine {
+            engine.stop()
+            if let node = sourceNode {
+                engine.detach(node)
+            }
+        }
+        audioEngine = nil
+        sourceNode = nil
+    }
+
+    // MARK: - Device Alarm Tone Preview & Ringing
+
+    func previewAlarmTone(_ tone: DeviceAlarmTone, customFileURL: URL? = nil) {
+        stopAlarmRinging()
+        if tone == .customDeviceTone, let url = customFileURL {
+            let accessed = url.startAccessingSecurityScopedResource()
+            defer { if accessed { url.stopAccessingSecurityScopedResource() } }
+            if let player = try? AVAudioPlayer(contentsOf: url) {
+                player.volume = 0.9
+                player.play()
+                customAudioPlayer = player
+                return
+            }
+        }
+        AudioServicesPlayAlertSound(tone.systemSoundID)
+    }
+
+    func startAlarmRinging(tone: DeviceAlarmTone, customFileURL: URL? = nil, spokenGreeting: String? = nil) {
+        stopAlarmRinging()
+        previewAlarmTone(tone, customFileURL: customFileURL)
+        alarmTimer = Timer.scheduledTimer(withTimeInterval: 2.4, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                AudioServicesPlayAlertSound(tone.systemSoundID)
+                let _ = self
+            }
+        }
+        if let greeting = spokenGreeting, !greeting.isEmpty {
+            speak(greeting)
+        }
+    }
+
+    func stopAlarmRinging() {
+        alarmTimer?.invalidate()
+        alarmTimer = nil
+    }
+
+    private func configureAudioSessionForPlayback() {
+        #if os(iOS)
+        let session = AVAudioSession.sharedInstance()
+        try? session.setCategory(.playback, mode: .default, options: [.mixWithOthers, .duckOthers])
+        try? session.setActive(true)
+        #endif
     }
 }
