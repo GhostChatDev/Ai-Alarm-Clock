@@ -227,11 +227,6 @@ extension RootView {
     struct CoachTabView: View {
         @Environment(AppStore.self) private var store
         @State private var messageText = ""
-        @State private var planItems: [PlanItem] = [
-            PlanItem(title: "Drink a glass of water", done: true),
-            PlanItem(title: "Stretch for two minutes", done: true),
-            PlanItem(title: "Pick your first task", done: false)
-        ]
 
         var body: some View {
             VStack(spacing: 0) {
@@ -284,7 +279,7 @@ extension RootView {
                             ForEach(planItems, id: \.title) { item in
                                 HStack(spacing: GhostTheme.Space.s) {
                                     Button {
-                                        togglePlanItem(item.title)
+                                        store.togglePlanItem(item.title)
                                     } label: {
                                         Image(systemName: item.done ? "checkmark.circle.fill" : "circle")
                                             .font(.system(size: 18))
@@ -309,7 +304,7 @@ extension RootView {
 
                 // Message input bar
                 VStack(spacing: 0) {
-                    Divider().background(GhostTheme.hairline)
+                    Divider().background(GhostTheme.border)
                     HStack(spacing: GhostTheme.Space.s) {
                         Image(systemName: "mic.fill")
                             .font(.subheadline)
@@ -349,18 +344,19 @@ extension RootView {
             .padding(.horizontal, 20)
         }
 
-        private func togglePlanItem(_ title: String) {
-            guard let index = planItems.firstIndex(where: { $0.title == title }) else { return }
-            withAnimation(GhostTheme.Motion.bounce) {
-                planItems[index].done.toggle()
-            }
+        private var planItems: [PlanItem] {
+            [
+                PlanItem(title: "Drink a glass of water", done: true),
+                PlanItem(title: "Stretch for two minutes", done: true),
+                PlanItem(title: "Pick your first task", done: false)
+            ]
         }
 
         private func sendMessage() {
             let text = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !text.isEmpty else { return }
             messageText = ""
-            Task { await store.send(text) }
+            store.send(text)
         }
 
         struct PlanItem: Identifiable, Hashable {
@@ -436,7 +432,7 @@ struct AddAlarmView: View {
                             time: time,
                             rule: repeatRule
                         )
-                        Task { _ = await store.save(alarm) }
+                        Task { await store.save(alarm) }
                         dismiss()
                     }
                 }
