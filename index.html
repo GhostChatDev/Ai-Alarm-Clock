@@ -223,7 +223,7 @@
         <div style="margin-top:auto; padding-bottom: 8px;">
           <div style="display:flex; gap:8px; border:1px solid rgba(255,255,255,0.14); border-radius:24px; padding:4px 10px; background: rgba(255,255,255,0.03);">
             <div class="dot" style="width:14px;height:14px;background:#6366f1;border-radius:50%;box-shadow:0 0 12px #6366f6;"></div>
-            <input type="text" id="coachInput" placeholder="Type a message…" style="flex:1;background:transparent;border:none;color:#fff;outline:none;font-size:14px;::placeholder{color:#8a87b2};">
+            <input type="text" id="coachInput" placeholder="Type a message..." style="flex:1;background:transparent;border:none;color:#fff;outline:none;font-size:14px;::placeholder{color:#8a87b2};">
             <button class="pill" style="padding:6px 12px;font-size:16px;background:#8b5cf6;color:#070517;border-radius:20px;">➤</button>
           </div>
         </div>
@@ -232,8 +232,8 @@
 
     <nav class="tabbar">
       <div class="tab active" data-screen="home"><div class="icon">🏠</div><div>Home</div></div>
-      <div class="tab" data-screen="wake"><div class="icon">⏰</div><div>Wake</div></div>
-      <div class="tab" data-screen="coach"><div class="icon">👻</div><div>Coach</div></div>
+      <div class="tab" data-screen="wake"><div class="icon">👻</div><div>Coach</div></div>
+      <div class="tab" data-screen="coach"><div class="icon">⚙️</div><div>Settings</div></div>
     </nav>
   </div>
 
@@ -283,15 +283,13 @@
       document.getElementById('snoozeBtn').addEventListener('click',()=>{ toastMsg('Snoozed 5 min. Ghost is watching. 👻'); });
 
       // Coach input
-      const coachScreen = document.getElementById('coach');
-      const coachAnchor = coachScreen.querySelector('.prompt-row');
       document.getElementById('coachInput').addEventListener('keypress',function(e){
         if(e.key==='Enter'){
           const v=this.value.trim(); if(!v) return;
           const wrap=document.createElement('div'); wrap.className='msg-bubble me'; wrap.textContent=v;
-          coachScreen.insertBefore(wrap, coachAnchor);
+          document.querySelector('#coach .screen').insertBefore(wrap, document.querySelector('#coach .prompt-row'));
           this.value='';
-          setTimeout(()=>{ const r=document.createElement('div'); r.className='msg-bubble'; r.textContent="Got it. Small steps. You've got this. 👻"; coachScreen.insertBefore(r, coachAnchor); }, 500);
+          setTimeout(()=>{ const r=document.createElement('div'); r.className='msg-bubble'; r.textContent="Got it. Small steps. You've got this. 👻"; document.querySelector('#coach .screen').insertBefore(r, document.querySelector('#coach .prompt-row')); }, 500);
         }
       });
 

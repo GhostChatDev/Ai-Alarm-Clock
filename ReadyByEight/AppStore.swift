@@ -38,12 +38,13 @@ final class AppStore {
     }
 
     func refresh() async {
-        let status: UNAuthorizationStatus = await withCheckedContinuation { continuation in
+        let settings = await withCheckedContinuation { continuation in
             UNUserNotificationCenter.current().getNotificationSettings { settings in
-                continuation.resume(returning: settings.authorizationStatus)
+                continuation.resume(returning: settings)
             }
         }
-        notificationsAllowed = status == .authorized || status == .provisional
+        notificationsAllowed = settings.authorizationStatus == .authorized
+            || settings.authorizationStatus == .provisional
     }
 
     private func persist(_ candidate: SavedState) throws {

@@ -227,11 +227,6 @@ extension RootView {
     struct CoachTabView: View {
         @Environment(AppStore.self) private var store
         @State private var messageText = ""
-        @State private var planItems: [PlanItem] = [
-            PlanItem(title: "Drink a glass of water", done: true),
-            PlanItem(title: "Stretch for two minutes", done: true),
-            PlanItem(title: "Pick your first task", done: false)
-        ]
 
         var body: some View {
             VStack(spacing: 0) {
@@ -281,23 +276,23 @@ extension RootView {
                             Text("Morning plan")
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(GhostTheme.textPrimary)
-                            ForEach($planItems, id: \.title) { $item in
-                            HStack(spacing: GhostTheme.Space.s) {
-                                Button {
-                                    item.done.toggle()
-                                } label: {
-                                    Image(systemName: item.done ? "checkmark.circle.fill" : "circle")
-                                        .font(.system(size: 18))
-                                        .foregroundStyle(item.done ? GhostTheme.mint : GhostTheme.textSecondary)
+                            ForEach(planItems, id: \.title) { item in
+                                HStack(spacing: GhostTheme.Space.s) {
+                                    Button {
+                                        store.togglePlanItem(item.title)
+                                    } label: {
+                                        Image(systemName: item.done ? "checkmark.circle.fill" : "circle")
+                                            .font(.system(size: 18))
+                                            .foregroundStyle(item.done ? GhostTheme.mint : GhostTheme.textSecondary)
+                                    }
+                                    .buttonStyle(.plain)
+                                    Text(item.title)
+                                        .font(.subheadline)
+                                        .foregroundStyle(GhostTheme.textPrimary)
+                                        .strikethrough(item.done)
+                                    Spacer(minLength: 0)
                                 }
-                                .buttonStyle(.plain)
-                                Text(item.title)
-                                    .font(.subheadline)
-                                    .foregroundStyle(GhostTheme.textPrimary)
-                                    .strikethrough(item.done)
-                                Spacer(minLength: 0)
-                            }
-                            .padding(.vertical, 2)
+                                .padding(.vertical, 2)
                             }
                         }
                         .ghostCard()
@@ -309,7 +304,7 @@ extension RootView {
 
                 // Message input bar
                 VStack(spacing: 0) {
-                    Divider().background(GhostTheme.hairline)
+                    Divider().background(GhostTheme.border)
                     HStack(spacing: GhostTheme.Space.s) {
                         Image(systemName: "mic.fill")
                             .font(.subheadline)
@@ -349,11 +344,19 @@ extension RootView {
             .padding(.horizontal, 20)
         }
 
+        private var planItems: [PlanItem] {
+            [
+                PlanItem(title: "Drink a glass of water", done: true),
+                PlanItem(title: "Stretch for two minutes", done: true),
+                PlanItem(title: "Pick your first task", done: false)
+            ]
+        }
+
         private func sendMessage() {
             let text = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !text.isEmpty else { return }
             messageText = ""
-            Task { await store.send(text) }
+            store.send(text)
         }
 
         struct PlanItem: Identifiable, Hashable {
