@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ghost Coach — Ready by Eight</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, sans-serif;
+    background: radial-gradient(ellipse 80% 60% at 50% -10%, #5b2cbf 0%, #1a0b2e 45%, #0a0514 100%);
+    color: #fff;
+    overflow-x: hidden;
+  }
+  a { color: inherit; text-decoration: none; }
+  button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+
+  /* ---------- App shell (iPhone mock) ---------- */
+  .app {
+    width: 100%; max-width: 430px; margin: 0 auto;
+    height: 100dvh; display: flex; flex-direction: column;
+    background: #0f071a;
+    border-radius: 40px; border: 1px solid rgba(255,255,255,0.06);
+    box-shadow: 0 25px 60px rgba(0,0,0,0.55);
+    position: relative; overflow: hidden;
+  }
+  .app::before {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(to bottom, rgba(91,44,191,0.35), transparent 40%, transparent);
+    pointer-events: none; z-index: 0;
+  }
+  .statusbar {
+    position: relative; z-index: 2; height: 48px; display: flex; align-items: center; justify-content: space-between;
+    padding: 0 16px; font-size: 13px; color: #c7c2e8;
+  }
+  .statusbar .left { display: flex; gap: 6px; align-items: center; font-weight: 600; letter-spacing: -0.3px; }
+  .statusbar .dot { width: 4px; height: 4px; border-radius: 50%; background: #22d3ee; box-shadow: 0 0 10px #22d3ee; }
+  .statusbar .right { display: flex; gap: 4px; align-items: center; font-variant-numeric: tabular-nums; }
+
+  /* ---------- Ghost mascot ---------- */
+  .ghost-wrap { position: relative; z-index: 2; width: 92px; height: 92px; margin: 0 auto 14px; filter: drop-shadow(0 14px 28px rgba(255,255,255,0.25)); }
+  .ghost {
+    position: relative; width: 100%; height: 100%;
+    background: radial-gradient(circle at 38% 42%, #ffffff, #e8e4f2 45%, #c7c2e8 78%);
+    border-radius: 52% 52% 46% 46% / 62% 62% 38% 38%;
+    animation: ghostFloat 4s ease-in-out infinite, ghostBlink 5s ease-in-out infinite;
+    will-change: transform;
+  }
+  .ghost::after {
+    content: ""; position: absolute; inset: -6px;
+    border-radius: inherit; background: linear-gradient(180deg, #ffffff33, transparent 55%);
+    filter: blur(14px); opacity: 0.55; pointer-events: none;
+  }
+  @keyframes ghostFloat { 0%,100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-8px) rotate(1.5deg); } }
+  @keyframes ghostBlink { 0%,94%,100% { transform: scaleY(1); } 96% { transform: scaleY(0.06); } 98% { transform: scaleY(1); } }
+  .ghost.blushing::before {
+    content: ""; position: absolute; top: 52%; width: 22px; height: 14px; background: #f472b6;
+    border-radius: 50%; filter: blur(6px); opacity: 0.55;
+  }
+  .ghost.blushing::before { left: 22%; box-shadow: 46px 0 0 #f472b6; }
+  .eyes { position: absolute; top: 30%; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; }
+  .eye { width: 14px; height: 14px; background: #111827; border-radius: 50%; box-shadow: 0 0 14px rgba(0,0,0,0.45); }
+  .mouth { position: absolute; bottom: 34%; left: 50%; transform: translateX(-50%); width: 18px; height: 10px; background: #111827; border-radius: 0 0 10px 10px; opacity: 0.75; }
+  .ghost.speaking .mouth { animation: speak 0.28s ease-in-out infinite; }
+  @keyframes speak { 0%,100% { height: 10px; transform: translateX(-50%) scaleX(1); } 50% { height: 4px; transform: translateX(-50%) scaleX(0.55); } }
+
+  /* ---------- Screens ---------- */
+  .screens { position: relative; z-index: 2; flex: 1; overflow: hidden; }
+  .screen { display: none; flex-direction: column; height: 100%; padding: 0 16px 10px; }
+  .screen.active { display: flex; }
+  .screen header { margin-top: 14px; }
+  .screen h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; color: #fff; }
+  .screen p.sub { font-size: 13px; color: #a7a3c8; margin-top: 4px; }
+
+  /* ---------- Home / Tonight ---------- */
+  .home { align-items: flex-start; padding-top: 8px; }
+  .home h1 { color: #b492f8; }
+  .card {
+    width: 100%; margin-top: 12px; border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 20px; padding: 16px; background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+  }
+  .alarm-card { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .alarm-info .label { font-size: 12px; color: #9ca3af; margin-bottom: 2px; }
+  .alarm-info .time { font-size: 34px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; color: #fff; }
+  .alarm-info .repeat { font-size: 12px; color: #a7a3c8; margin-top: 2px; }
+  .toggle {
+    width: 52px; height: 28px; border-radius: 14px; background: rgba(255,255,255,0.10);
+    position: relative; display: flex; align-items: center; padding: 3px; transition: background 0.2s;
+  }
+  .toggle.on { background: #a78bfa; }
+  .knob { width: 22px; height: 22px; border-radius: 50%; background: #fff; position: absolute; top: 3px; left: 3px; transition: transform 0.25s cubic-bezier(.4,0,.2,1); box-shadow: 0 2px 6px rgba(0,0,0,0.25); }
+  .toggle.on .knob { transform: translateX(24px); }
+
+  .coach-card { margin-top: 12px; position: relative; overflow: hidden; }
+  .coach-card::before {
+    content: ""; position: absolute; inset: 0; border-radius: 20px;
+    padding: 1px; background: linear-gradient(90deg, #8b5cf6, #ec4899, #f59e0b);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: destination-out; mask-composite: exclude; pointer-events: none;
+  }
+  .coach-inner { position: relative; z-index: 1; display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: rgba(20,16,40,0.65); border-radius: 18px; }
+  .coach-ghost { width: 42px; height: 42px; border-radius: 52% 52% 46% 46% / 62% 62% 38% 38%; background: radial-gradient(circle at 40% 40%, #fff, #c7c2e8); filter: drop-shadow(0 8px 16px rgba(255,255,255,0.35)); }
+  .coach-text h3 { font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 2px; }
+  .coach-text p { font-size: 13px; color: #c7c2e8; }
+
+  .weather-card { margin-top: 12px; padding: 18px 16px; border-radius: 24px; background: linear-gradient(135deg, #6366f1, #a855f7); display: flex; align-items: center; justify-content: space-between; box-shadow: 0 14px 30px rgba(99,102,241,0.45); }
+  .weather-info .temp { font-size: 40px; font-weight: 800; line-height: 1; }
+  .weather-info .desc { font-size: 13px; color: #e9e6ff; margin-top: 2px; }
+  .weather-icon { font-size: 40px; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.35)); }
+
+  /* ---------- Wake-Up ---------- */
+  .wake { align-items: center; justify-content: center; text-align: center; padding-top: 10px; }
+  .wake h1 { color: #fbbf24; margin-bottom: 6px; }
+  .wake .sub { font-size: 16px; color: #d6d3f1; margin-bottom: 26px; }
+  .big-time { font-size: 110px; font-weight: 900; font-variant-numeric: tabular-nums; line-height: 1; color: #fff; letter-spacing: -4px; margin-bottom: 6px; text-shadow: 0 0 40px rgba(255,255,255,0.15); }
+  .wake .date { font-size: 17px; color: #a7a3c8; margin-bottom: 34px; }
+  .big-btn { width: 100%; height: 56px; border-radius: 28px; background: linear-gradient(135deg, #a78bfa, #8b5cf6); color: #0b0a16; font-size: 18px; font-weight: 700; box-shadow: 0 10px 24px rgba(167,139,250,0.45); margin-bottom: 12px; transform: translateY(0); transition: transform 0.15s, filter 0.15s; }
+  .big-btn:active { transform: translateY(2px); filter: brightness(1.1); }
+  .snooze-btn { width: 100%; height: 52px; border-radius: 26px; border: 1px solid rgba(255,255,255,0.14); color: #c7c2e8; font-size: 16px; font-weight: 600; backdrop-filter: blur(8px); background: rgba(255,255,255,0.04); }
+  .wake-foot { margin-top: 22px; font-size: 12px; color: #73718c; display: flex; align-items: center; gap: 6px; justify-content: center; }
+
+  /* ---------- Coach ---------- */
+  .coach { align-items: flex-start; padding-top: 8px; }
+  .coach h1 { color: #fff; }
+  .msg-bubble {
+    max-width: 78%; padding: 12px 16px; border-radius: 18px; font-size: 15px; line-height: 1.5; margin-bottom: 10px;
+    background: rgba(99,102,241,0.22); border: 1px solid rgba(255,255,255,0.08); color: #e9e6ff;
+  }
+  .msg-bubble.me { align-self: flex-end; background: linear-gradient(135deg, #4f46e5, #7c3aed); border-color: transparent; }
+  .prompt-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0 2px; }
+  .pill { padding: 7px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; border: 1px solid rgba(255,255,255,0.16); color: #e5e7eb; background: rgba(255,255,255,0.06); white-space: nowrap; }
+  .pill.active { border-color: #a78bfa; color: #e0d7ff; background: rgba(167,139,250,0.18); }
+  .plan-card { margin-top: 12px; border-radius: 20px; padding: 16px; background: rgba(20,16,40,0.55); border: 1px solid rgba(255,255,255,0.08); }
+  .plan-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 10px; color: #fff; }
+  .plan-item { display: flex; align-items: center; gap: 12px; padding: 8px 0; font-size: 15px; color: #e5e7eb; }
+  .plan-item.done { opacity: 0.6; }
+  .plan-check { width: 22px; height: 22px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.25); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; }
+  .plan-item.done .plan-check { background: #22c55e; border-color: #22c55e; }
+  .plan-check::after { content: "✓"; font-size: 14px; font-weight: 800; color: #fff; opacity: 0; }
+  .plan-item.done .plan-check::after { opacity: 1; }
+
+  /* ---------- Tab bar ---------- */
+  .tabbar { position: relative; z-index: 2; height: 72px; display: flex; align-items: center; justify-content: space-around; padding: 10px 8px 4px; background: rgba(15,7,26,0.85); border-top: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(12px); }
+  .tab { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; color: #6b6a85; padding: 6px 10px; border-radius: 12px; transition: all 0.2s; }
+  .tab.active { color: #fff; background: rgba(255,255,255,0.08); box-shadow: 0 2px 10px rgba(0,0,0,0.3); }
+  .tab .icon { font-size: 20px; }
+
+  /* ---------- Toast ---------- */
+  .toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); padding: 10px 16px; border-radius: 20px; background: rgba(0,0,0,0.8); color: #fff; font-size: 13px; font-weight: 600; border: 1px solid rgba(255,255,255,0.12); opacity: 0; pointer-events: none; transition: opacity 0.25s, transform 0.25s; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(-6px); }
+
+  /* ---------- Reduce motion ---------- */
+  @media (prefers-reduced-motion: reduce) {
+    .ghost { animation: none; } .ghost.speaking .mouth { animation: none; }
+    .big-btn { animation: none; } .plan-check { transition: none; }
+  }
+</style>
+</head>
+<body>
+  <div class="app">
+    <div class="statusbar">
+      <div class="left"><div class="dot"></div> 9:41</div>
+      <div class="right">Carrier <span class="dot"></span> <span id="clock">7:00 AM</span></div>
+    </div>
+
+    <div class="screens">
+      <!-- Home / Tonight -->
+      <section class="screen active" id="home">
+        <header><h1>Ghost Coach</h1><p class="sub">A better morning starts tonight.</p></header>
+        <div class="card alarm-card">
+          <div class="alarm-info">
+            <div class="label">Alarm</div>
+            <div class="time" id="homeTime">7:00 AM</div>
+            <div class="repeat">Tomorrow • Mon–Fri</div>
+          </div>
+          <div class="toggle on" id="alarmToggle" role="switch" aria-checked="true" aria-label="Alarm on/off">
+            <div class="knob"></div>
+          </div>
+        </div>
+        <div class="card coach-card">
+          <div class="coach-inner">
+            <div class="coach-ghost"></div>
+            <div class="coach-text"><h3>AI Coach</h3><p>Ready for tomorrow? Tell me what you want to accomplish.</p></div>
+          </div>
+        </div>
+        <div class="card weather-card">
+          <div class="weather-info"><div class="temp" id="weatherTemp">18°C</div><div class="desc" id="weatherDesc">Clear sky</div></div>
+          <div class="weather-icon">🌙</div>
+        </div>
+      </section>
+
+      <!-- Wake-Up Alarm -->
+      <section class="screen" id="wake">
+        <header><h1 style="font-size:16px;color:#fbbf24;">Wake-Up</h1></header>
+        <div class="ghost-wrap"><div class="ghost speaking blushing"><div class="eyes"><div class="eye"></div><div class="eye"></div></div><div class="mouth"></div></div></div>
+        <div class="wake">
+          <h1>Good morning</h1>
+          <p class="sub">Let's take the first small step.</p>
+          <div class="big-time" id="wakeTime">7:00</div>
+          <div class="date" id="wakeDate">Monday, October 28</div>
+          <button class="big-btn" id="awakeBtn">I'm Awake</button>
+          <button class="big-btn snooze-btn" id="snoozeBtn">Snooze · 5 min</button>
+          <div class="wake-foot"><span class="dot"></span> Rain today · <span id="wakeWeather">12°C</span></div>
+        </div>
+      </section>
+
+      <!-- AI Morning Coach -->
+      <section class="screen" id="coach">
+        <header><h1>Your Morning Coach</h1><p class="sub">Small steps. A stronger start.</p></header>
+        <div class="msg-bubble" style="align-self:flex-start;">Good morning. What's one thing you want to get done today?</div>
+        <div class="prompt-row">
+          <div class="pill active">Move my body</div>
+          <div class="pill">Focus on work</div>
+          <div class="pill">Feel less stressed</div>
+        </div>
+        <div class="plan-card">
+          <h3>Morning plan</h3>
+          <div class="plan-item done"><div class="plan-check"></div><div>Drink a glass of water</div></div>
+          <div class="plan-item done"><div class="plan-check"></div><div>Stretch for two minutes</div></div>
+          <div class="plan-item"><div class="plan-check"></div><div>Pick your first task</div></div>
+        </div>
+        <div style="margin-top:auto; padding-bottom: 8px;">
+          <div style="display:flex; gap:8px; border:1px solid rgba(255,255,255,0.14); border-radius:24px; padding:4px 10px; background: rgba(255,255,255,0.03);">
+            <div class="dot" style="width:14px;height:14px;background:#6366f1;border-radius:50%;box-shadow:0 0 12px #6366f6;"></div>
+            <input type="text" id="coachInput" placeholder="Type a message..." style="flex:1;background:transparent;border:none;color:#fff;outline:none;font-size:14px;">
+            <button class="pill" style="padding:6px 12px;font-size:16px;background:#8b5cf6;color:#070517;border-radius:20px;">➤</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <nav class="tabbar">
+      <div class="tab active" data-screen="home"><div class="icon">🏠</div><div>Home</div></div>
+      <div class="tab" data-screen="wake"><div class="icon">👻</div><div>Coach</div></div>
+      <div class="tab" data-screen="coach"><div class="icon">⚙️</div><div>Settings</div></div>
+    </nav>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    (function(){
+      const screens = document.querySelectorAll('.screen');
+      const tabs = document.querySelectorAll('.tab');
+      const toast = document.getElementById('toast');
+
+      function show(screenId){
+        screens.forEach(s=>s.classList.remove('active'));
+        tabs.forEach(t=>t.classList.remove('active'));
+        document.getElementById(screenId).classList.add('active');
+        document.querySelector('.tab[data-screen="'+screenId+'"]').classList.add('active');
+      }
+      tabs.forEach(t=>t.addEventListener('click',()=>show(t.dataset.screen)));
+
+      function toastMsg(msg){
+        toast.textContent = msg;
+        toast.classList.add('show');
+        setTimeout(()=>toast.classList.remove('show'), 1600);
+      }
+
+      // Clock
+      function tick(){
+        const now = new Date();
+        document.getElementById('clock').textContent = now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+      }
+      setInterval(tick, 1000); tick();
+
+      // Wake screen time
+      document.getElementById('wakeTime').textContent = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+      document.getElementById('wakeDate').textContent = new Date().toLocaleDateString([],{weekday:'long',month:'long',day:'numeric'});
+
+      // Alarm toggle
+      const toggle = document.getElementById('alarmToggle');
+      toggle.addEventListener('click',()=>{
+        const on = toggle.classList.toggle('on');
+        toggle.setAttribute('aria-checked', on);
+        toastMsg('Alarm ' + (on ? 'enabled' : 'disabled'));
+      });
+
+      // Wake buttons
+      document.getElementById('awakeBtn').addEventListener('click',()=>{ show('home'); toastMsg('Great — you are up. Have a good morning!'); });
+      document.getElementById('snoozeBtn').addEventListener('click',()=>{ toastMsg('Snoozed 5 min. Ghost is watching. 👻'); });
+
+      // Coach input
+      document.getElementById('coachInput').addEventListener('keypress',function(e){
+        if(e.key==='Enter'){
+          const v=this.value.trim(); if(!v) return;
+          const wrap=document.createElement('div'); wrap.className='msg-bubble me'; wrap.textContent=v;
+          document.querySelector('#coach .screen').insertBefore(wrap, document.querySelector('#coach .prompt-row'));
+          this.value='';
+          setTimeout(()=>{ const r=document.createElement('div'); r.className='msg-bubble'; r.textContent="Got it. Small steps. You've got this. 👻"; document.querySelector('#coach .screen').insertBefore(r, document.querySelector('#coach .prompt-row')); }, 500);
+        }
+      });
+
+      // Pills
+      document.querySelectorAll('.pill').forEach(p=>p.addEventListener('click',()=>{
+        p.parentElement.querySelectorAll('.pill').forEach(x=>x.classList.remove('active'));
+        p.classList.add('active');
+      }));
+
+      // Plan checks
+      document.querySelectorAll('.plan-check').forEach(c=>c.addEventListener('click',()=>{
+        const item=c.parentElement; item.classList.toggle('done');
+      }));
+
+      // Ghost speak loop on home coach card
+      const coachGhost = document.querySelector('.coach-ghost');
+      let speaking=false;
+      setInterval(()=>{
+        if(Math.random()<0.12 && !speaking){
+          speaking=true; coachGhost.parentElement.classList.add('speaking');
+          setTimeout(()=>{ coachGhost.parentElement.classList.remove('speaking'); speaking=false; }, 1200);
+        }
+      }, 2500);
+    })();
+  </script>
+</body>
+</html>
