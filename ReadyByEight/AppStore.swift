@@ -38,7 +38,11 @@ final class AppStore {
     }
 
     func refresh() async {
-        let settings = await center.notificationSettings()
+        let settings = await withCheckedContinuation { continuation in
+            UNUserNotificationCenter.current().getNotificationSettings { settings in
+                continuation.resume(returning: settings)
+            }
+        }
         notificationsAllowed = settings.authorizationStatus == .authorized
             || settings.authorizationStatus == .provisional
     }
