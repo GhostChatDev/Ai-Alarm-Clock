@@ -1,3 +1,149 @@
+import SwiftUI
+
+/// Root shell with the three tabs from the photos: Home / Tonight, Wake-Up Alarm, AI Morning Coach.
+struct RootView: View {
+    @Environment(AppStore.self) private var store
+    @State private var selectedTab: Tab = .home
+
+    enum Tab: String, CaseIterable, Identifiable {
+        case home, coach, settings
+        var id: String { rawValue }
+        var icon: String {
+            switch self {
+            case .home: return "house.fill"
+            case .coach: return "person.circle.fill"
+            case .settings: return "gear"
+            }
+        }
+        var title: String {
+            switch self {
+            case .home: return "Home"
+            case .coach: return "Coach"
+            case .settings: return "Settings"
+            }
+        }
+    }
+
+    var body: some View {
+        Group {
+            switch selectedTab {
+            case .home: HomeView()
+            case .coach: CoachTabView()
+            case .settings: SettingsView()
+            }
+        }
+        .ghostScreen(animated: true)
+        .safeAreaInset(edge: .bottom) {
+            tabBar
+                .padding(.bottom, 8)
+                .background(GhostTheme.ink.opacity(0.9))
+        }
+    }
+
+    // MARK: - Tab bar
+
+    private var tabBar: some View {
+        HStack(spacing: 0) {
+            ForEach(Tab.allCases) { tab in
+                GhostTheme.GhostTabItem(
+                    icon: tab.icon,
+                    title: tab.title,
+                    isSelected: selectedTab == tab
+                ) {
+                    withAnimation(GhostTheme.Motion.bounce) { selectedTab = tab }
+                }
+            }
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 4)
+        .background {
+            Capsule()
+                .fill(GhostTheme.inkRaised)
+                .shadow(color: Color.black.opacity(0.3), radius: 12, x: 0, y: 4)
+        }
+        .padding(.horizontal, 20)
+    }
+}
+
+// MARK: - Home / Tonight
+
+extension RootView {
+    /// Home screen: alarm card, "Ready for tomorrow?" coach card, weather card.
+    struct HomeView: View {
+        @Environment(AppStore.self) private var store
+
+        var body: some View {
+            ScrollView {
+                VStack(spacing: GhostTheme.Space.l) {
+                    GhostTheme.GhostHeader("Ghost Coach", subtitle: "A better morning starts tonight.")
+                        .padding(.horizontal, 20)
+
+                    // Alarm card
+                    VStack(alignment: .leading, spacing: GhostTheme.Space.s) {
+                        HStack {
+                            Text("Alarm")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(GhostTheme.textSecondary)
+                            Spacer()
+                            Toggle("7:00 AM", isOn: .constant(true))
+                                .toggleStyle(.switch)
+                        }
+                        .font(.system(.title2, design: .rounded).weight(.bold))
+                        .foregroundStyle(GhostTheme.textPrimary)
+
+                        Text("Mon–Fri")
+                            .font(.subheadline)
+                            .foregroundStyle(GhostTheme.textSecondary)
+                    }
+                    .padding(GhostTheme.Space.l)
+                    .ghostCard()
+                    .padding(.horizontal, 20)
+
+                    // AI Coach card
+                    VStack(alignment: .leading, spacing: GhostTheme.Space.s) {
+                        HStack(spacing: GhostTheme.Space.xs) {
+                            GhostTheme.GhostMascot(isSpeaking: false, size: 24)
+                            Text("AI Coach")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(GhostTheme.textPrimary)
+                        }
+                        Text("Ready for tomorrow?")
+                            .font(.title3.weight(.semibold))
+                            .foregroundStyle(GhostTheme.textPrimary)
+                        Text("Tell me what you want to accomplish.")
+                            .font(.subheadline)
+                            .foregroundStyle(GhostTheme.textSecondary)
+                    }
+                    .padding(GhostTheme.Space.l)
+                    .ghostCard()
+                    .padding(.horizontal, 20)
+
+                    // Weather card
+                    HStack(spacing: GhostTheme.Space.m) {
+                        Image(systemName: "cloud.moon.fill")
+                            .font(.system(size: 44, weight: .medium))
+                            .foregroundStyle(GhostTheme.purpleSoft)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("18°C")
+                                .font(.system(.title, design: .rounded).weight(.bold))
+                                .foregroundStyle(GhostTheme.textPrimary)
+                            Text("Clear sky")
+                                .font(.subheadline.weight(.medium))
+                                .foregroundStyle(GhostTheme.textSecondary)
+                        }
+                        Spacer(minLength: 0)
+                    }
+                    .padding(GhostTheme.Space.l)
+                    .ghostCard()
+                    .padding(.horizontal, 20)
+
+                    Spacer(minLength: 120)
+                }
+            }
+        }
+    }
+}
+
 // MARK: - Wake-Up Alarm
 
 extension RootView {
@@ -48,7 +194,7 @@ extension RootView {
                 .padding(.horizontal, 20)
 
                 GhostTheme.GhostPillButton("Snooze · 5 min", systemImage: "clock.fill", prominent: false) {
-                    store.snooze(5)
+                    withAnimation { animateGhost.toggle() }
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 32)
@@ -81,6 +227,11 @@ extension RootView {
     struct CoachTabView: View {
         @Environment(AppStore.self) private var store
         @State private var messageText = ""
+        @State private var planItems: [PlanItem] = [
+            PlanItem(title: "Drink a glass of water", done: true),
+            PlanItem(title: "Stretch for two minutes", done: true),
+            PlanItem(title: "Pick your first task", done: false)
+        ]
 
         var body: some View {
             VStack(spacing: 0) {
@@ -130,10 +281,12 @@ extension RootView {
                             Text("Morning plan")
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(GhostTheme.textPrimary)
-                            ForEach(planItems, id: \.title) { item in
+                            ForEach(planItems) { item in
                                 HStack(spacing: GhostTheme.Space.s) {
                                     Button {
-                                        store.togglePlanItem(item.title)
+                                        withAnimation(GhostTheme.Motion.bounce) {
+                                            planItems[index(for: item)].done.toggle()
+                                        }
                                     } label: {
                                         Image(systemName: item.done ? "checkmark.circle.fill" : "circle")
                                             .font(.system(size: 18))
@@ -180,7 +333,7 @@ extension RootView {
                     }
                     .padding(.horizontal, 14)
                     .padding(.vertical, 12)
-                    .background(Theme.background)
+                    .background(GhostTheme.inkRaised)
                 }
             }
         }
@@ -198,26 +351,49 @@ extension RootView {
             .padding(.horizontal, 20)
         }
 
-        private var planItems: [PlanItem] {
-            [
-                PlanItem(title: "Drink a glass of water", done: true),
-                PlanItem(title: "Stretch for two minutes", done: true),
-                PlanItem(title: "Pick your first task", done: false)
-            ]
-        }
-
         private func sendMessage() {
             let text = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !text.isEmpty else { return }
             messageText = ""
-            store.addUserMessage(text)
+            store.send(text)
+        }
+
+        private func index(for item: PlanItem) -> Int {
+            planItems.firstIndex(where: { $0.id == item.id }) ?? 0
+        }
+
+        struct PlanItem: Identifiable, Hashable {
+            let title: String
+            var done: Bool
+            var id: String { title }
         }
     }
+}
 
-    struct PlanItem: Identifiable, Hashable {
-        let title: String
-        var done: Bool
-        var id: String { title }
+// MARK: - Settings
+
+extension RootView {
+    struct SettingsView: View {
+        @Environment(AppStore.self) private var store
+
+        var body: some View {
+            List {
+                Section {
+                    Text(store.notificationsAllowed ? "Notifications: on" : "Notifications: off")
+                        .foregroundStyle(GhostTheme.textSecondary)
+                } header: {
+                    Text("Reminders")
+                }
+
+                Section {
+                    Button("Clear chat") { store.clearChat() }
+                        .foregroundStyle(GhostTheme.textSecondary)
+                }
+            }
+            .listStyle(.insetGrouped)
+            .navigationTitle("Settings")
+            .navigationBarTitleDisplayMode(.inline)
+        }
     }
 }
 
@@ -226,8 +402,7 @@ extension RootView {
 struct AddAlarmView: View {
     @Environment(AppStore.self) private var store
     @Environment(\.dismiss) private var dismiss
-    @State private var hour = 7
-    @State private var minute = 0
+    @State private var time = Date()
     @State private var enabled = true
     @State private var repeatRule: RepeatRule = .weekdays
     @State private var label = "Alarm"
@@ -236,12 +411,8 @@ struct AddAlarmView: View {
         NavigationStack {
             Form {
                 Section {
-                    HStack {
-                        Text("Time")
-                        Spacer()
-                        DatePicker("", selection: .constant(Date()), displayedComponents: .hourAndMinute)
-                            .labelsHidden()
-                    }
+                    DatePicker("Time", selection: $time, displayedComponents: .hourAndMinute)
+                        .datePickerStyle(.wheel)
                 } header: {
                     Text("Alarm")
                 }
@@ -259,12 +430,12 @@ struct AddAlarmView: View {
 
                 Section {
                     GhostTheme.GhostPillButton("Save", prominent: true) {
-                        let alarm = Alarm(
-                            hour: hour, minute: minute,
-                            enabled: enabled, repeatRule: repeatRule,
-                            label: label.isEmpty ? "Alarm" : label
+                        let alarm = WakeAlarm(
+                            label: label.isEmpty ? "Alarm" : label,
+                            time: time,
+                            rule: repeatRule
                         )
-                        store.addAlarm(alarm)
+                        Task { await store.save(alarm) }
                         dismiss()
                     }
                 }
