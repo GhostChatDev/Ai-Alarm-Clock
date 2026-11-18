@@ -354,10 +354,11 @@ enum GhostTheme {
                                   control2: CGPoint(x: cx - 6, y: h * 0.78))
                     path.addCurve(to: CGPoint(x: w * 0.75, y: h * 0.75),
                                   control1: CGPoint(x: cx + 6, y: h * 0.78),
-                                  control2: CGPoint(x: w * 0.66, y: h * 0.68))
+                                  control2: CGPoint(x: w * 0.66, y: h * 0.68),
+                                  control3: CGPoint(x: w * 0.84, y: h * 0.82))
                     path.addCurve(to: CGPoint(x: w, y: h * 0.55),
-                                  control1: CGPoint(x: w * 0.84, y: h * 0.82),
-                                  control2: CGPoint(x: w * 0.92, y: h * 0.68))
+                                  control1: CGPoint(x: w * 0.92, y: h * 0.68),
+                                  control2: CGPoint(x: w, y: h * 0.55))
                 }
                 .fill(GhostTheme.ghostGlow.opacity(0.55))
                 .frame(width: size * 0.82, height: size * 0.92)
@@ -473,28 +474,28 @@ enum GhostTheme {
             }
         }
     }
+}
 
-    // MARK: - One-line adoption helpers
+// MARK: - One-line adoption helpers
 
-    extension View {
-        /// Glass card: rounded fill + hairline border + soft shadow.
-        func ghostCard(radius: CGFloat = GhostTheme.Radius.card, glow: Bool = false) -> some View {
-            modifier(GhostCard(radius: radius, glow: glow))
-        }
+extension View {
+    /// Glass card: rounded fill + hairline border + soft shadow.
+    func ghostCard(radius: CGFloat = GhostTheme.Radius.card, glow: Bool = false) -> some View {
+        modifier(GhostTheme.GhostCard(radius: radius, glow: glow))
+    }
 
-        /// Full-screen look: aurora background, text colour and accent tint.
-        func ghostScreen(animated: Bool = false) -> some View {
-            background(GhostAurora(animated: animated))
-                .foregroundStyle(GhostTheme.textPrimary)
-                .tint(GhostTheme.mint)
-        }
+    /// Full-screen look: aurora background, text colour and accent tint.
+    func ghostScreen(animated: Bool = false) -> some View {
+        background(GhostTheme.GhostAurora(animated: animated))
+            .foregroundStyle(GhostTheme.textPrimary)
+            .tint(GhostTheme.mint)
+    }
 
-        func ghostShimmer(_ active: Bool = true) -> some View {
-            modifier(GhostShimmer(active: active))
-        }
+    func ghostShimmer(_ active: Bool = true) -> some View {
+        modifier(GhostTheme.GhostShimmer(active: active))
+    }
 
-        func ghostGlow(_ color: Color = GhostTheme.mint, radius: CGFloat = 22) -> some View {
-            shadow(color: color.opacity(0.30), radius: radius)
-        }
+    func ghostGlow(_ color: Color = GhostTheme.mint, radius: CGFloat = 22) -> some View {
+        shadow(color: color.opacity(0.30), radius: radius)
     }
 }
