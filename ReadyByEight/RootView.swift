@@ -1,7 +1,8 @@
 import SwiftUI
 import UIKit
 
-/// Root shell with the four tabs from the photos: Home / Tonight, Wake-Up Alarm,\n/// AI Morning Coach, Settings.
+/// Root shell with the four tabs from the photos:
+/// Home / Tonight, Wake-Up Alarm, AI Morning Coach, Settings.
 struct RootView: View {
     @Environment(AppStore.self) private var store
     @State private var selectedTab: Tab = .home
@@ -72,7 +73,7 @@ struct RootView: View {
 // MARK: - Home / Tonight
 
 extension RootView {
-    /// Home screen: alarm card, "Ready for tomorrow?" coach card, weather card.
+    /// Home screen: tonight's alarm, the coach card and the weather card.
     struct HomeView: View {
         @Environment(AppStore.self) private var store
         @State private var showingAddAlarm = false
@@ -83,78 +84,14 @@ extension RootView {
                     GhostTheme.GhostHeader("Ghost Coach", subtitle: "A better morning starts tonight.")
                         .padding(.horizontal, 20)
 
-                    // Alarm card
-                    VStack(alignment: .leading, spacing: GhostTheme.Space.s) {
-                        HStack {
-                            Text("Alarm")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(GhostTheme.textSecondary)
-                            Spacer()
-                            Button {
-                                showingAddAlarm = true
-                            } label: {
-                                Image(systemName: "plus.circle.fill")
-                                    .font(.title2)
-                                    .foregroundStyle(GhostTheme.accentGradient)
-                            }
-                        }
-                        if let alarm = ghostUpcomingAlarm(in: store) {
-                            Text(alarm.label)
-                                .font(.system(.title2, design: .rounded).weight(.bold))
-                                .foregroundStyle(GhostTheme.textPrimary)
-                            Text(alarm.displayDate.formatted(date: .omitted, time: .shortened) + " · " + alarm.rule.rawValue)
-                                .font(.subheadline)
-                                .foregroundStyle(GhostTheme.textSecondary)
-                        } else {
-                            Text("No alarm set")
-                                .font(.system(.title2, design: .rounded).weight(.bold))
-                                .foregroundStyle(GhostTheme.textPrimary)
-                            Text("Set your wake-up time")
-                                .font(.subheadline)
-                                .foregroundStyle(GhostTheme.textSecondary)
-                        }
-                    }
-                    .padding(GhostTheme.Space.l)
-                    .ghostCard()
-                    .padding(.horizontal, 20)
+                    alarmCard
 
-                    // AI Coach card
-                    VStack(alignment: .leading, spacing: GhostTheme.Space.s) {
-                        HStack(spacing: GhostTheme.Space.xs) {
-                            GhostTheme.GhostMascot(isSpeaking: false, size: 24)
-                            Text("AI Coach")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(GhostTheme.textPrimary)
-                        }
-                        Text("Ready for tomorrow?")
-                            .font(.title3.weight(.semibold))
-                            .foregroundStyle(GhostTheme.textPrimary)
-                        Text("Tell me what you want to accomplish.")
-                            .font(.subheadline)
-                            .foregroundStyle(GhostTheme.textSecondary)
+                    if !store.state.alarms.isEmpty {
+                        alarmList
                     }
-                    .padding(GhostTheme.Space.l)
-                    .ghostCard()
-                    .padding(.horizontal, 20)
 
-                    // Weather card
-                    HStack(spacing: GhostTheme.Space.m) {
-                        Image(systemName: "cloud.moon.fill")
-                            .font(.system(size: 44, weight: .medium))
-                            .foregroundStyle(GhostTheme.purpleSoft)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("18°C")
-                                .font(.system(.title, design: .rounded).weight(.bold))
-                                .foregroundStyle(GhostTheme.textPrimary)
-                            Text("Clear sky")
-                                .font(.subheadline.weight(.medium))
-                                .foregroundStyle(GhostTheme.textSecondary)
-                        }
-                        Spacer(minLength: 0)
-                    }
-                    .padding(GhostTheme.Space.l)
-                    .ghostCard()
-                    .padding(.horizontal, 20)
+                    coachCard
+                    weatherCard
 
                     Spacer(minLength: 120)
                 }
@@ -163,73 +100,199 @@ extension RootView {
                 AddAlarmView()
             }
         }
+
+        private var alarmCard: some View {
+            VStack(alignment: .leading, spacing: GhostTheme.Space.s) {
+                HStack {
+                    Text("Alarm")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(GhostTheme.textSecondary)
+                    Spacer()
+                    Button {
+                        showingAddAlarm = true
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.title2)
+                            .foregroundStyle(GhostTheme.accentGradient)
+                    }
+                    .accessibilityLabel("Add alarm")
+                }
+                if let alarm = ghostUpcomingAlarm(in: store) {
+                    Text(alarm.displayDate.formatted(date: .omitted, time: .shortened))
+                        .font(.system(.largeTitle, design: .rounded).weight(.bold))
+                        .foregroundStyle(GhostTheme.textPrimary)
+                    Text(alarm.label + " · " + alarm.rule.rawValue)
+                        .font(.subheadline)
+                        .foregroundStyle(GhostTheme.textSecondary)
+                } else {
+                    Text("No alarm set")
+                        .font(.system(.title2, design: .rounded).weight(.bold))
+                        .foregroundStyle(GhostTheme.textPrimary)
+                    Text("Set your wake-up time")
+                        .font(.subheadline)
+                        .foregroundStyle(GhostTheme.textSecondary)
+                }
+            }
+            .padding(GhostTheme.Space.l)
+            .ghostCard()
+            .padding(.horizontal, 20)
+        }
+
+        private var alarmList: some View {
+            VStack(alignment: .leading, spacing: GhostTheme.Space.s) {
+                Text("Tonight's reminders")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(GhostTheme.textSecondary)
+                ForEach(store.state.alarms) { alarm in
+                    HStack(spacing: GhostTheme.Space.s) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(alarm.displayDate.formatted(date: .omitted, time: .shortened))
+                                .font(.headline)
+                                .foregroundStyle(GhostTheme.textPrimary)
+                                .monospacedDigit()
+                            Text(alarm.label + " · " + alarm.rule.rawValue)
+                                .font(.caption)
+                                .foregroundStyle(GhostTheme.textSecondary)
+                        }
+                        Spacer(minLength: 0)
+                        Toggle("", isOn: Binding(
+                            get: { alarm.enabled },
+                            set: { _ in Task { await store.toggle(alarm) } }
+                        ))
+                        .labelsHidden()
+                        .tint(GhostTheme.mint)
+                        Button {
+                            store.delete(alarm)
+                        } label: {
+                            Image(systemName: "trash")
+                                .foregroundStyle(GhostTheme.textSecondary)
+                        }
+                        .accessibilityLabel("Delete \(alarm.label)")
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+            .padding(GhostTheme.Space.l)
+            .ghostCard()
+            .padding(.horizontal, 20)
+        }
+
+        private var coachCard: some View {
+            VStack(alignment: .leading, spacing: GhostTheme.Space.s) {
+                HStack(spacing: GhostTheme.Space.xs) {
+                    GhostTheme.GhostMascot(isSpeaking: store.isCoachSpeaking, size: 24)
+                    Text("AI Coach")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(GhostTheme.textPrimary)
+                }
+                Text("Ready for tomorrow?")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(GhostTheme.textPrimary)
+                Text("Tell me what you want to accomplish.")
+                    .font(.subheadline)
+                    .foregroundStyle(GhostTheme.textSecondary)
+                Text(store.challengeCompleted
+                     ? "Today's challenge: done. Nice start."
+                     : "Today's challenge: sit up, feet on the floor, open the curtains.")
+                    .font(.caption)
+                    .foregroundStyle(GhostTheme.textSecondary)
+            }
+            .padding(GhostTheme.Space.l)
+            .ghostCard()
+            .padding(.horizontal, 20)
+        }
+
+        private var weatherCard: some View {
+            HStack(spacing: GhostTheme.Space.m) {
+                Image(systemName: "cloud.moon.fill")
+                    .font(.system(size: 44, weight: .medium))
+                    .foregroundStyle(GhostTheme.purpleSoft)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("18°C")
+                        .font(.system(.title, design: .rounded).weight(.bold))
+                        .foregroundStyle(GhostTheme.textPrimary)
+                    Text("Clear sky")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(GhostTheme.textSecondary)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(GhostTheme.Space.l)
+            .ghostCard()
+            .padding(.horizontal, 20)
+        }
     }
 }
 
 // MARK: - Wake-Up Alarm
 
 extension RootView {
-    /// The wake-up alarm screen from the photos: big ghost, big time,
-    /// "I'm Awake" and "Snooze" buttons, weather at the bottom.
+    /// The wake-up alarm screen from the photo: big ghost, big time,
+    /// "I'm Awake" and "Snooze", with a gentle weather line.
     struct WakeTabView: View {
         @Environment(AppStore.self) private var store
-        @State private var animateGhost = false
+        @State private var ghostIsSpeaking = false
+        @State private var snoozeNote: String?
 
         var body: some View {
             VStack(spacing: 0) {
-                Spacer()
+                Spacer(minLength: 20)
 
-                // Animated ghost mascot
-                GhostTheme.GhostMascot(
-                    isSpeaking: animateGhost,
-                    size: 110
-                )
-                .padding(.bottom, 16)
+                GhostTheme.GhostMascot(isSpeaking: ghostIsSpeaking, size: 110)
+                    .padding(.bottom, 16)
 
-                // Greeting
                 VStack(spacing: GhostTheme.Space.xs) {
-                    Text("Good morning")
+                    Text(greeting)
                         .font(.system(.title3, design: .rounded).weight(.semibold))
                         .foregroundStyle(Color(red: 1, green: 0.85, blue: 0.55))
                     Text("Let's take the first small step.")
                         .font(.subheadline)
                         .foregroundStyle(GhostTheme.textSecondary)
                 }
+                .multilineTextAlignment(.center)
                 .padding(.bottom, 24)
 
-                // Big time
-                if let alarm = ghostUpcomingAlarm(in: store) {
-                    Text(alarm.displayDate.formatted(date: .omitted, time: .shortened))
-                        .font(.system(size: 96, weight: .thin, design: .rounded))
-                        .foregroundStyle(GhostTheme.textPrimary)
-                        .monospacedDigit()
-                        .contentTransition(.numericText())
-                } else {
-                    Text("7:00")
-                        .font(.system(size: 96, weight: .thin, design: .rounded))
-                        .foregroundStyle(GhostTheme.textPrimary)
-                        .monospacedDigit()
-                }
+                Text(ghostUpcomingAlarm(in: store)?.displayDate
+                        .formatted(date: .omitted, time: .shortened) ?? "--:--")
+                    .font(.system(size: 96, weight: .thin, design: .rounded))
+                    .foregroundStyle(GhostTheme.textPrimary)
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+                    .minimumScaleFactor(0.5)
+                    .lineLimit(1)
 
-                Text("Monday, October 28")
+                Text(Date.now.formatted(.dateTime.weekday(.wide).month(.wide).day()))
                     .font(.subheadline)
                     .foregroundStyle(GhostTheme.textSecondary)
-                    .padding(.bottom, 40)
+                    .padding(.bottom, 32)
 
-                // Buttons
                 GhostTheme.GhostPillButton("I'm Awake", systemImage: "checkmark.circle.fill", prominent: true) {
-                    withAnimation { animateGhost.toggle() }
+                    ghostIsSpeaking = true
                     store.completeChallenge()
+                    Task {
+                        try? await Task.sleep(for: .seconds(2.5))
+                        ghostIsSpeaking = false
+                    }
                 }
                 .padding(.horizontal, 20)
 
                 GhostTheme.GhostPillButton("Snooze · 5 min", systemImage: "clock.fill", prominent: false) {
-                    withAnimation { animateGhost.toggle() }
+                    snoozeNote = "Stay close: your reminder is still set for "
+                        + (ghostUpcomingAlarm(in: store)?.displayDate
+                            .formatted(date: .omitted, time: .shortened) ?? "your wake-up time") + "."
                 }
                 .padding(.horizontal, 20)
-                .padding(.bottom, 32)
+                .padding(.bottom, 18)
 
-                // Weather at bottom
+                if let snoozeNote {
+                    Text(snoozeNote)
+                        .font(.caption)
+                        .foregroundStyle(GhostTheme.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 24)
+                        .padding(.bottom, 12)
+                }
+
                 HStack(spacing: GhostTheme.Space.m) {
                     Image(systemName: "cloud.rain.fill")
                         .font(.subheadline)
@@ -238,12 +301,19 @@ extension RootView {
                         .font(.subheadline.weight(.medium))
                         .foregroundStyle(GhostTheme.textSecondary)
                 }
-                .padding(.bottom, 26)
+                .padding(.bottom, 20)
 
-                Spacer(minLength: 30)
+                Spacer(minLength: 20)
             }
-            .onAppear {
-                animateGhost = true
+        }
+
+        private var greeting: String {
+            let hour = Calendar.current.component(.hour, from: .now)
+            switch hour {
+            case 4..<12: return "Good morning"
+            case 12..<17: return "Good afternoon"
+            case 17..<22: return "Good evening"
+            default: return "Rest well tonight"
             }
         }
     }
@@ -252,247 +322,159 @@ extension RootView {
 // MARK: - AI Morning Coach
 
 extension RootView {
-    /// The coach tab: a chat-style morning plan with suggested replies
-    /// and a checkable morning plan, matching the last photo.
+    /// Coach tab: a chat with the coach plus a checkable morning plan.
     struct CoachTabView: View {
         @Environment(AppStore.self) private var store
         @State private var messageText = ""
         @State private var planItems: [PlanItem] = [
-            PlanItem(title: "drink a glass of water", done: false),
-            PlanItem(title: "stretch for two minutes", done: false),
-            PlanItem(title: "pick your first task", done: false),
+            PlanItem(title: "Drink a glass of water"),
+            PlanItem(title: "Stretch for two minutes"),
+            PlanItem(title: "Pick your first task"),
         ]
+
+        private let chips = ["Move my body", "Focus on work", "Feel less stressed"]
 
         var body: some View {
             VStack(spacing: 0) {
-                // Header with ghost
+                header
+                chatScroll
+                inputBar
+            }
+        }
+
+        private var header: some View {
+            VStack(alignment: .leading, spacing: 2) {
                 HStack {
                     Text("Your Morning Coach")
                         .font(.system(.title2, design: .rounded).weight(.bold))
                         .foregroundStyle(GhostTheme.textPrimary)
                     Spacer()
-                    GhostTheme.GhostMascot(isSpeaking: false, size: 28)
+                    GhostTheme.GhostMascot(isSpeaking: store.isCoachSpeaking, size: 28)
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
-                .padding(.bottom, 2)
-
-                Text("Small steps. A stronger start.")
+                Text(store.coachName)
                     .font(.subheadline)
                     .foregroundStyle(GhostTheme.textSecondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 16)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
+            .padding(.bottom, 12)
+        }
 
-                ScrollView {
-                    VStack(alignment: .leading, spacing: GhostTheme.Space.m) {
-                        // Chat bubble
-                        chatBubble
-
-                        // Suggested chips
-                        HStack(spacing: GhostTheme.Space.s) {
-                            ForEach(["Move my body", "Focus on work", "Feel less stressed"], id: \.self) { chip in
-                                Button { /* handled by store */ } label: {
-                                    Text(chip)
-                                        .font(.caption.weight(.medium))
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 7)
-                                        .background(GhostTheme.glass, in: Capsule())
-                                        .foregroundStyle(GhostTheme.textPrimary)
-                                }
-                                .buttonStyle(GhostTheme.GhostPressStyle(scale: 0.96))
-                            }
-                            Spacer(minLength: 0)
-                        }
-                        .padding(.horizontal, 20)
-
-                        // Morning plan
-                        VStack(alignment: .leading, spacing: GhostTheme.Space.s) {
-                            Text("Morning plan")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(GhostTheme.textPrimary)
-                            ForEach($planItems) { $item in
-                                HStack(spacing: GhostTheme.Space.s) {
-                                    Button {
-                                        item.done.toggle()
-                                    } label: {
-                                        Image(systemName: item.done ? "checkmark.circle.fill" : "circle")
-                                            .font(.system(size: 18))
-                                            .foregroundStyle(item.done ? GhostTheme.mint : GhostTheme.textSecondary)
-                                    }
-                                    .buttonStyle(.plain)
-                                    Text(item.title)
-                                        .font(.subheadline)
-                                        .foregroundStyle(GhostTheme.textPrimary)
-                                        .strikethrough(item.done)
-                                    Spacer(minLength: 0)
-                                }
-                                .padding(.vertical, 2)
-                            }
-                        }
-                        .ghostCard()
-                        .padding(.horizontal, 20)
-
-                        Spacer(minLength: 120)
+        private var chatScroll: some View {
+            ScrollView {
+                VStack(alignment: .leading, spacing: GhostTheme.Space.m) {
+                    ForEach(store.state.messages) { message in
+                        bubble(for: message)
                     }
-                }
-
-                // Message input bar
-                VStack(spacing: 0) {
-                    Divider().background(GhostTheme.hairline)
-                    HStack(spacing: GhostTheme.Space.s) {
-                        Image(systemName: "mic.fill")
-                            .font(.subheadline)
-                            .foregroundStyle(GhostTheme.textSecondary)
-                        TextField("Type a message...", text: $messageText)
-                            .textFieldStyle(.plain)
+                    if store.state.messages.isEmpty {
+                        Text("Good morning. What's one thing you want to get done today?")
+                            .font(.body)
                             .foregroundStyle(GhostTheme.textPrimary)
-                        Button {
-                            Task {
-                                await store.send(messageText)
-                                messageText = ""
-                            }
-                        } label: {
-                            Image(systemName: "paperplane.fill")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(Color.white)
-                                .padding(12)
-                                .background(GhostTheme.accentGradient, in: Circle())
-                        }
-                        .disabled(messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                        .buttonStyle(GhostTheme.GhostPressStyle(scale: 0.92))
+                            .padding(GhostTheme.Space.m)
+                            .background(GhostTheme.glass, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
                     }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 12)
-                    .background(GhostTheme.inkRaised)
+
+                    chipsRow
+                    morningPlan
+
+                    Spacer(minLength: 24)
                 }
+                .padding(.horizontal, 20)
+            }
+            .scrollDismissesKeyboard(.interactively)
+        }
+
+        private func bubble(for message: CoachMessage) -> some View {
+            HStack {
+                if message.isUser { Spacer(minLength: 40) }
+                Text(message.text)
+                    .font(.subheadline)
+                    .foregroundStyle(message.isUser ? Color.white : GhostTheme.textPrimary)
+                    .padding(GhostTheme.Space.m)
+                    .background {
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .fill(message.isUser ? AnyShapeStyle(GhostTheme.accentGradient)
+                                                 : AnyShapeStyle(GhostTheme.glass))
+                    }
+                if !message.isUser { Spacer(minLength: 40) }
             }
         }
 
-        private var chatBubble: some View {
-            VStack(alignment: .leading, spacing: GhostTheme.Space.m) {
-                GhostTheme.GhostHeader("AI Coach", subtitle: nil)
-                    .padding(.bottom, 2)
-                Text("Good morning. What's one thing you want to get done today?")
-                    .font(.body)
-                    .foregroundStyle(GhostTheme.textPrimary)
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 8)
+        private var chipsRow: some View {
+            HStack(spacing: GhostTheme.Space.s) {
+                ForEach(chips, id: \.self) { chip in
+                    Button {
+                        Task { await store.send(chip) }
+                    } label: {
+                        Text(chip)
+                            .font(.caption.weight(.medium))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 7)
+                            .background(GhostTheme.glass, in: Capsule())
+                            .foregroundStyle(GhostTheme.textPrimary)
+                    }
+                    .buttonStyle(GhostTheme.GhostPressStyle(scale: 0.96))
+                    .disabled(store.sending)
+                }
+                Spacer(minLength: 0)
             }
         }
-    }
-}
 
-// MARK: - Settings
-
-extension RootView {
-    struct SettingsView: View {
-        @Environment(AppStore.self) private var store
-
-        var body: some View {
-            VStack(spacing: GhostTheme.Space.l) {
-                GhostTheme.GhostHeader("Settings", subtitle: "Preferences and notifications")
-                    .padding(.horizontal, 20)
-
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Allow notifications")
-                            .font(.subheadline.weight(.medium))
-                        Text(store.notificationsAllowed ? "On" : "Off")
-                            .font(.caption)
-                            .foregroundStyle(GhostTheme.textSecondary)
-                    }
-                    Spacer()
-                    Button("Open Settings") {
-                        if let url = URL(string: UIApplication.openSettingsURLString) {
-                            UIApplication.shared.open(url)
-                        }
-                    }
+        private var morningPlan: some View {
+            VStack(alignment: .leading, spacing: GhostTheme.Space.s) {
+                Text("Morning plan")
                     .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(GhostTheme.textPrimary)
+                ForEach($planItems) { $item in
+                    HStack(spacing: GhostTheme.Space.s) {
+                        Button {
+                            item.done.toggle()
+                        } label: {
+                            Image(systemName: item.done ? "checkmark.circle.fill" : "circle")
+                                .font(.system(size: 18))
+                                .foregroundStyle(item.done ? GhostTheme.mint : GhostTheme.textSecondary)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(item.done ? "Mark \(item.title) not done" : "Mark \(item.title) done")
+                        Text(item.title)
+                            .font(.subheadline)
+                            .foregroundStyle(GhostTheme.textPrimary)
+                            .strikethrough(item.done)
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.vertical, 2)
                 }
-                .padding(.horizontal, 20)
+            }
+            .ghostCard()
+        }
 
+        private var inputBar: some View {
+            HStack(spacing: GhostTheme.Space.s) {
+                TextField("Type a message...", text: $messageText, axis: .vertical)
+                    .lineLimit(1...4)
+                    .textFieldStyle(.plain)
+                    .foregroundStyle(GhostTheme.textPrimary)
                 Button {
-                    store.clearChat()
+                    let text = messageText
+                    messageText = ""
+                    Task { await store.send(text) }
                 } label: {
-                    HStack {
-                        Image(systemName: "trash")
-                        Text("Clear chat history")
-                    }
+                    Image(systemName: "paperplane.fill")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Color.white)
+                        .padding(12)
+                        .background(GhostTheme.accentGradient, in: Circle())
                 }
-                .foregroundStyle(.red)
-                .padding(.horizontal, 20)
-
-                Spacer()
+                .disabled(messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || store.sending)
+                .buttonStyle(GhostTheme.GhostPressStyle(scale: 0.92))
+                .accessibilityLabel("Send message")
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(GhostTheme.inkRaised)
+            .overlay(alignment: .top) {
+                Rectangle().fill(GhostTheme.hairline).frame(height: 1)
             }
         }
     }
-}
-
-// MARK: - Add Alarm
-
-extension RootView {
-    struct AddAlarmView: View {
-        @Environment(AppStore.self) private var store
-        @Environment(\.dismiss) private var dismiss
-        @State private var label = ""
-        @State private var time = Date()
-        @State private var selectedRepeat: RepeatRule = .daily
-
-        var body: some View {
-            NavigationStack {
-                Form {
-                    Section("Alarm") {
-                        TextField("Label", text: $label)
-                        DatePicker("Time", selection: $time, displayedComponents: .hourAndMinute)
-                        Picker("Repeat", selection: $selectedRepeat) {
-                            ForEach(RepeatRule.allCases, id: \.self) { rule in
-                                Text(rule.rawValue).tag(rule)
-                            }
-                        }
-                    }
-                }
-                .navigationTitle("New Alarm")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Cancel") { dismiss() }
-                    }
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("Save") {
-                            let alarm = WakeAlarm(label: label.isEmpty ? "Alarm" : label, time: time, rule: selectedRepeat)
-                            Task {
-                                _ = await store.save(alarm)
-                                dismiss()
-                            }
-                        }
-                        .disabled(label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                    }
-                }
-            }
-        }
-    }
-}
-
-// MARK: - PlanItem
-
-private struct PlanItem: Identifiable, Equatable {
-    let id = UUID()
-    var title: String
-    var done: Bool
-}
-
-// MARK: - Shared helpers
-
-/// The enabled alarm with the soonest next occurrence, or nil when nothing is scheduled.
-@MainActor
-func ghostUpcomingAlarm(in store: AppStore, now: Date = .now) -> WakeAlarm? {
-    store.state.alarms
-        .filter { $0.enabled }
-        .compactMap { alarm -> (WakeAlarm, Date)? in
-            guard let next = alarm.nextOccurrence(after: now) else { return nil }
-            return (alarm, next)
-        }
-        .min { $0.1 < $1.1 }?
-        .0
 }
