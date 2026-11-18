@@ -87,10 +87,7 @@ struct HomeView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: GhostTheme.Space.l) {
                     HStack(alignment: .top) {
-                        GhostTheme.GhostHeader(
-                            title: greeting,
-                            subtitle: subtitle
-                        )
+                        GhostTheme.GhostHeader(greeting, subtitle: subtitle)
                         GhostTheme.GhostMascot(isSpeaking: store.isCoachSpeaking, size: 76)
                     }
 
@@ -202,12 +199,9 @@ struct WakeTabView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: GhostTheme.Space.l) {
                     HStack {
-                        GhostTheme.GhostHeader(
-                            title: "Wake-up alarm",
-                            subtitle: store.nextAlarm.map {
-                                "Next \($0.formatted(date: .abbreviated, time: .shortened))"
-                            } ?? "Nothing scheduled yet"
-                        )
+                        GhostTheme.GhostHeader("Wake-up alarm", subtitle: store.nextAlarm.map {
+                            "Next \($0.formatted(date: .abbreviated, time: .shortened))"
+                        } ?? "Nothing scheduled yet")
                         GhostTheme.GhostMascot(isSpeaking: false, size: 60)
                     }
 
@@ -329,10 +323,7 @@ struct SettingsTabView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: GhostTheme.Space.l) {
-                    GhostTheme.GhostHeader(
-                        title: "Settings",
-                        subtitle: "Gentle mornings, private by default"
-                    )
+                    GhostTheme.GhostHeader("Settings", subtitle: "Gentle mornings, private by default")
 
                     VStack(alignment: .leading, spacing: GhostTheme.Space.s) {
                         Text("Coach")
@@ -393,7 +384,7 @@ struct AddAlarmView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: GhostTheme.Space.l) {
-                    GhostTheme.GhostHeader(title: "New reminder", subtitle: "A gentle start to the day")
+                    GhostTheme.GhostHeader("New reminder", subtitle: "A gentle start to the day")
 
                     VStack(alignment: .leading, spacing: GhostTheme.Space.m) {
                         TextField("Label, for example Wake up", text: $label)
