@@ -1,19 +1,18 @@
 import SwiftUI
 import UIKit
 
-/// Root shell with the three tabs from the photos: Home / Tonight, AI Morning Coach, Settings.
-/// The Wake-Up Alarm screen is presented as a full-screen cover when the alarm is active.
+/// Root shell with the four tabs from the photos: Home / Tonight, Wake-Up Alarm,\n/// AI Morning Coach, Settings.
 struct RootView: View {
     @Environment(AppStore.self) private var store
     @State private var selectedTab: Tab = .home
-    @State private var showingWake = false
 
     enum Tab: String, CaseIterable, Identifiable {
-        case home, coach, settings
+        case home, wake, coach, settings
         var id: String { rawValue }
         var icon: String {
             switch self {
             case .home: return "house.fill"
+            case .wake: return "alarm.fill"
             case .coach: return "person.circle.fill"
             case .settings: return "gear"
             }
@@ -21,6 +20,7 @@ struct RootView: View {
         var title: String {
             switch self {
             case .home: return "Home"
+            case .wake: return "Wake"
             case .coach: return "Coach"
             case .settings: return "Settings"
             }
@@ -29,14 +29,11 @@ struct RootView: View {
 
     var body: some View {
         Group {
-            if showingWake {
-                WakeUpView()
-            } else {
-                switch selectedTab {
-                case .home: HomeView()
-                case .coach: CoachTabView()
-                case .settings: SettingsView()
-                }
+            switch selectedTab {
+            case .home: HomeView()
+            case .wake: WakeTabView()
+            case .coach: CoachTabView()
+            case .settings: SettingsView()
             }
         }
         .ghostScreen(animated: true)
@@ -44,9 +41,6 @@ struct RootView: View {
             tabBar
                 .padding(.bottom, 8)
                 .background(GhostTheme.ink.opacity(0.9))
-        }
-        .onChange(of: store.nextAlarm) { _, newAlarm in
-            showingWake = newAlarm != nil
         }
     }
 
@@ -177,7 +171,7 @@ extension RootView {
 extension RootView {
     /// The wake-up alarm screen from the photos: big ghost, big time,
     /// "I'm Awake" and "Snooze" buttons, weather at the bottom.
-    struct WakeUpView: View {
+    struct WakeTabView: View {
         @Environment(AppStore.self) private var store
         @State private var animateGhost = false
 
@@ -225,7 +219,7 @@ extension RootView {
                 // Buttons
                 GhostTheme.GhostPillButton("I'm Awake", systemImage: "checkmark.circle.fill", prominent: true) {
                     withAnimation { animateGhost.toggle() }
-                    Task { await store.completeChallenge() }
+                    store.completeChallenge()
                 }
                 .padding(.horizontal, 20)
 
@@ -297,7 +291,7 @@ extension RootView {
 
                         // Suggested chips
                         HStack(spacing: GhostTheme.Space.s) {
-                            ForEach(["Have a few", "Suggestions", "Few minutes"], id: \.self) { chip in
+                            ForEach(["Move my body", "Focus on work", "Feel less stressed"], id: \.self) { chip in
                                 Button { /* handled by store */ } label: {
                                     Text(chip)
                                         .font(.caption.weight(.medium))
@@ -419,7 +413,7 @@ extension RootView {
                 .padding(.horizontal, 20)
 
                 Button {
-                    Task { await store.clearChat() }
+                    store.clearChat()
                 } label: {
                     HStack {
                         Image(systemName: "trash")
@@ -491,6 +485,7 @@ private struct PlanItem: Identifiable, Equatable {
 // MARK: - Shared helpers
 
 /// The enabled alarm with the soonest next occurrence, or nil when nothing is scheduled.
+@MainActor
 func ghostUpcomingAlarm(in store: AppStore, now: Date = .now) -> WakeAlarm? {
     store.state.alarms
         .filter { $0.enabled }
