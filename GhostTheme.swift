@@ -14,9 +14,10 @@ enum GhostTheme {
 
     static let ghostWhite = Color(red: 0.97, green: 0.98, blue: 1.0)
     static let ghostGlow = Color(red: 0.92, green: 0.95, blue: 1.0)
-    static let mint = Color(red: 0.76, green: 0.91, blue: 0.62)
-    static let mintBright = Color(red: 0.85, green: 0.98, blue: 0.72)
-    static let teal = Color(red: 0.35, green: 0.72, blue: 0.68)
+    // Compatibility aliases used by the existing screens; the reference uses lavender.
+    static let mint = Color(red: 0.72, green: 0.62, blue: 0.96)
+    static let mintBright = Color(red: 0.82, green: 0.76, blue: 1.0)
+    static let teal = Color(red: 0.47, green: 0.30, blue: 0.86)
     static let pink = Color(red: 1.0, green: 0.78, blue: 0.86)
     static let pinkSoft = Color(red: 1.0, green: 0.88, blue: 0.94)
     static let purple = Color(red: 0.68, green: 0.62, blue: 0.96)
