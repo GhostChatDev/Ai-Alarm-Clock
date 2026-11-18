@@ -360,7 +360,7 @@ extension RootView {
             let text = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !text.isEmpty else { return }
             messageText = ""
-            store.send(text)
+            Task { await store.send(text) }
         }
 
         struct PlanItem: Identifiable, Hashable {
@@ -436,7 +436,7 @@ struct AddAlarmView: View {
                             time: time,
                             rule: repeatRule
                         )
-                        Task { await store.save(alarm) }
+                        Task { _ = await store.save(alarm) }
                         dismiss()
                     }
                 }
