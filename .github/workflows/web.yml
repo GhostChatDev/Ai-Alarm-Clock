@@ -8,9 +8,10 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  check:
+    name: Static web check
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 
@@ -18,12 +19,71 @@ jobs:
         with:
           node-version: 22
 
-      - name: Install
-        run: npm install
-
-      - name: Build
-        run: npm run build
-
-      - name: Test
+      - name: Write the check script
         run: |
-          if npm run | grep -qE "^  test$"; then npm test; else echo "No test script yet."; fi
+          rm -f /tmp/web-check.mjs
+          cat > /tmp/web-check.mjs <<'JS'
+          import { readFileSync, existsSync } from 'node:fs';
+
+          const files = ['index.html', 'ghost-speak-web.html'];
+          let failures = 0;
+
+          function fail(msg) {
+            failures++;
+            console.log('FAIL: ' + msg);
+          }
+
+          for (const file of files) {
+            if (!existsSync(file)) {
+              fail(file + ' is missing');
+              continue;
+            }
+            const html = readFileSync(file, 'utf8');
+            const trimmed = html.trim();
+
+            if (!/^<!DOCTYPE html>/i.test(trimmed)) {
+              fail(file + ' does not start with <!DOCTYPE html>');
+            }
+            if (!/<meta[^>]+name="viewport"[^>]*width=device-width/i.test(html)) {
+              fail(file + ' is missing the viewport meta tag');
+            }
+            if (!/<\/html>$/i.test(trimmed)) {
+              fail(file + ' does not close </html>');
+            }
+            if (!/<script>/.test(html)) {
+              fail(file + ' has no inline <script> block');
+            }
+            if (/\.\.\./.test(html.replace(/…/g, ''))) {
+              fail(file + ' contains a "..." placeholder');
+            }
+
+            const ids = new Set([...html.matchAll(/id="([^"]+)"/g)].map((m) => m[1]));
+            for (const m of html.matchAll(/getElementById\(['"]([^'"]+)['"]\)/g)) {
+              if (!ids.has(m[1])) {
+                fail(file + ' uses id "' + m[1] + '" but no element has that id');
+              }
+            }
+
+            const scriptBodies = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)];
+            for (const block of scriptBodies) {
+              const body = block[1];
+              const open = (body.match(/[{([]/g) || []).length;
+              const close = (body.match(/[})\]]/g) || []).length;
+              if (open !== close) {
+                fail(file + ' script has unbalanced brackets (' + open + ' open, ' + close + ' close)');
+              }
+            }
+
+            console.log('PASS: ' + file + ' (' + html.split('\n').length + ' lines, ' + ids.size + ' ids)');
+          }
+
+          if (failures > 0) {
+            console.log('FAILURES: ' + failures);
+            process.exit(1);
+          }
+          console.log('ALL WEB CHECKS PASSED');
+          JS
+          node --check /tmp/web-check.mjs
+
+      - name: Check the static pages
+        run: node /tmp/web-check.mjs
