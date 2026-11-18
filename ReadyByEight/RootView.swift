@@ -281,23 +281,23 @@ extension RootView {
                             Text("Morning plan")
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(GhostTheme.textPrimary)
-                            ForEach(planItems, id: \.title) { item in
-                                HStack(spacing: GhostTheme.Space.s) {
-                                    Button {
-                                        togglePlanItem(item.title)
-                                    } label: {
-                                        Image(systemName: item.done ? "checkmark.circle.fill" : "circle")
-                                            .font(.system(size: 18))
-                                            .foregroundStyle(item.done ? GhostTheme.mint : GhostTheme.textSecondary)
-                                    }
-                                    .buttonStyle(.plain)
-                                    Text(item.title)
-                                        .font(.subheadline)
-                                        .foregroundStyle(GhostTheme.textPrimary)
-                                        .strikethrough(item.done)
-                                    Spacer(minLength: 0)
+                            ForEach($planItems, id: \.title) { $item in
+                            HStack(spacing: GhostTheme.Space.s) {
+                                Button {
+                                    item.done.toggle()
+                                } label: {
+                                    Image(systemName: item.done ? "checkmark.circle.fill" : "circle")
+                                        .font(.system(size: 18))
+                                        .foregroundStyle(item.done ? GhostTheme.mint : GhostTheme.textSecondary)
                                 }
-                                .padding(.vertical, 2)
+                                .buttonStyle(.plain)
+                                Text(item.title)
+                                    .font(.subheadline)
+                                    .foregroundStyle(GhostTheme.textPrimary)
+                                    .strikethrough(item.done)
+                                Spacer(minLength: 0)
+                            }
+                            .padding(.vertical, 2)
                             }
                         }
                         .ghostCard()
@@ -347,11 +347,6 @@ extension RootView {
             }
             .ghostCard()
             .padding(.horizontal, 20)
-        }
-
-        private func togglePlanItem(_ title: String) {
-            guard let index = planItems.firstIndex(where: { $0.title == title }) else { return }
-            planItems[index].done.toggle()
         }
 
         private func sendMessage() {
@@ -434,7 +429,7 @@ struct AddAlarmView: View {
                             time: time,
                             rule: repeatRule
                         )
-                        Task { _ = await store.save(alarm) }
+                        Task { await store.save(alarm) }
                         dismiss()
                     }
                 }
