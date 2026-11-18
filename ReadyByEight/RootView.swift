@@ -227,6 +227,7 @@ extension RootView {
     struct CoachTabView: View {
         @Environment(AppStore.self) private var store
         @State private var messageText = ""
+        @State private var doneItems: Set<String> = ["Drink a glass of water", "Stretch for two minutes"]
 
         var body: some View {
             VStack(spacing: 0) {
@@ -276,10 +277,10 @@ extension RootView {
                             Text("Morning plan")
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(GhostTheme.textPrimary)
-                            ForEach(Array(planItems.enumerated()), id: \.element.title) { index, item in
+                            ForEach(planItems) { item in
                                 HStack(spacing: GhostTheme.Space.s) {
                                     Button {
-                                        planItems[index].done.toggle()
+                                        togglePlanItem(item.title)
                                     } label: {
                                         Image(systemName: item.done ? "checkmark.circle.fill" : "circle")
                                             .font(.system(size: 18))
@@ -344,11 +345,21 @@ extension RootView {
             .padding(.horizontal, 20)
         }
 
-        @State private var planItems: [PlanItem] = [
-            PlanItem(title: "Drink a glass of water", done: true),
-            PlanItem(title: "Stretch for two minutes", done: true),
-            PlanItem(title: "Pick your first task", done: false)
-        ]
+        private var planItems: [PlanItem] {
+            [
+                PlanItem(title: "Drink a glass of water", done: doneItems.contains("Drink a glass of water")),
+                PlanItem(title: "Stretch for two minutes", done: doneItems.contains("Stretch for two minutes")),
+                PlanItem(title: "Pick your first task", done: doneItems.contains("Pick your first task"))
+            ]
+        }
+
+        private func togglePlanItem(_ title: String) {
+            if doneItems.contains(title) {
+                doneItems.remove(title)
+            } else {
+                doneItems.insert(title)
+            }
+        }
 
         private func sendMessage() {
             let text = messageText.trimmingCharacters(in: .whitespacesAndNewlines)

@@ -473,9 +473,10 @@ enum GhostTheme {
             }
         }
     }
+
 }
 
-// MARK: - One-line adoption helpers
+// MARK: - One-line adoption helpers (file scope: extensions must not be nested)
 
 extension View {
     /// Glass card: rounded fill + hairline border + soft shadow.
