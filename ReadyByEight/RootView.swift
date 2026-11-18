@@ -281,12 +281,10 @@ extension RootView {
                             Text("Morning plan")
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(GhostTheme.textPrimary)
-                            ForEach(planItems) { item in
+                            ForEach(planItems, id: \.title) { item in
                                 HStack(spacing: GhostTheme.Space.s) {
                                     Button {
-                                        withAnimation(GhostTheme.Motion.bounce) {
-                                            planItems[index(for: item)].done.toggle()
-                                        }
+                                        togglePlanItem(item.title)
                                     } label: {
                                         Image(systemName: item.done ? "checkmark.circle.fill" : "circle")
                                             .font(.system(size: 18))
@@ -351,15 +349,18 @@ extension RootView {
             .padding(.horizontal, 20)
         }
 
+        private func togglePlanItem(_ title: String) {
+            guard let index = planItems.firstIndex(where: { $0.title == title }) else { return }
+            withAnimation(GhostTheme.Motion.bounce) {
+                planItems[index].done.toggle()
+            }
+        }
+
         private func sendMessage() {
             let text = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !text.isEmpty else { return }
             messageText = ""
             store.send(text)
-        }
-
-        private func index(for item: PlanItem) -> Int {
-            planItems.firstIndex(where: { $0.id == item.id }) ?? 0
         }
 
         struct PlanItem: Identifiable, Hashable {
