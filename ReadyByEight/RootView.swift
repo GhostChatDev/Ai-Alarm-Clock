@@ -1,25 +1,25 @@
 import SwiftUI
 
-/// Root shell with the three tabs from the photos: Home / Tonight, Wake-Up Alarm, AI Morning Coach.
+/// Root shell with the three tabs from the photos: Home / Tonight, AI Morning Coach, Settings.
+/// The Wake-Up Alarm screen is presented as a full-screen cover when the alarm is active.
 struct RootView: View {
     @Environment(AppStore.self) private var store
     @State private var selectedTab: Tab = .home
+    @State private var showingWake = false
 
     enum Tab: String, CaseIterable, Identifiable {
-        case home, wake, coach, settings
+        case home, coach, settings
         var id: String { rawValue }
         var icon: String {
             switch self {
             case .home: return "house.fill"
-            case .wake: return "alarm.fill"
             case .coach: return "person.circle.fill"
             case .settings: return "gear"
             }
         }
         var title: String {
             switch self {
-            case .home: return "Night"
-            case .wake: return "Wake"
+            case .home: return "Home"
             case .coach: return "Coach"
             case .settings: return "Settings"
             }
@@ -28,11 +28,14 @@ struct RootView: View {
 
     var body: some View {
         Group {
-            switch selectedTab {
-            case .home: HomeView()
-            case .wake: WakeUpView()
-            case .coach: CoachTabView()
-            case .settings: SettingsView()
+            if showingWake {
+                WakeUpView()
+            } else {
+                switch selectedTab {
+                case .home: HomeView()
+                case .coach: CoachTabView()
+                case .settings: SettingsView()
+                }
             }
         }
         .ghostScreen(animated: true)
@@ -40,6 +43,9 @@ struct RootView: View {
             tabBar
                 .padding(.bottom, 8)
                 .background(GhostTheme.ink.opacity(0.9))
+        }
+        .onChange(of: store.nextAlarm) { _, newAlarm in
+            showingWake = newAlarm != nil
         }
     }
 
@@ -79,104 +85,43 @@ extension RootView {
         var body: some View {
             ScrollView {
                 VStack(spacing: GhostTheme.Space.l) {
-                    HStack(alignment: .top) {
-                        GhostTheme.GhostHeader("Ghost Coach", subtitle: "A better morning starts tonight.")
-                        Button {
-                            showingAddAlarm = true
-                        } label: {
-                            Image(systemName: "plus")
-                                .font(.system(size: 16, weight: .bold))
-                                .foregroundStyle(GhostTheme.inkDeep)
-                                .frame(width: 40, height: 40)
-                                .background(GhostTheme.accentGradient, in: Circle())
-                        }
-                        .buttonStyle(GhostTheme.GhostPressStyle(scale: 0.92))
-                        .accessibilityLabel("Add alarm")
-                    }
-                    .padding(.horizontal, 20)
+                    GhostTheme.GhostHeader("Ghost Coach", subtitle: "A better morning starts tonight.")
+                        .padding(.horizontal, 20)
 
                     // Alarm card
                     VStack(alignment: .leading, spacing: GhostTheme.Space.s) {
                         HStack {
-                            Text("Next alarm")
+                            Text("Alarm")
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(GhostTheme.textSecondary)
                             Spacer()
-                            if store.state.alarms.contains(where: \.enabled) {
-                                Image(systemName: "bell.fill")
-                                    .font(.caption)
-                                    .foregroundStyle(GhostTheme.mint)
+                            Button {
+                                showingAddAlarm = true
+                            } label: {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.title2)
+                                    .foregroundStyle(GhostTheme.accentGradient)
                             }
                         }
-
-                        if let next = store.nextAlarm {
-                            Text(next.formatted(date: .omitted, time: .shortened))
-                                .font(.system(.largeTitle, design: .rounded).weight(.bold))
+                        if let alarm = store.nextAlarm {
+                            Text(alarm.label)
+                                .font(.system(.title2, design: .rounded).weight(.bold))
                                 .foregroundStyle(GhostTheme.textPrimary)
-                                .monospacedDigit()
-                            Text(store.state.alarms.first(where: \.enabled)?.label ?? "A fresh start")
+                            Text(alarm.time.formatted(date: .omitted, time: .shortened) + " · " + alarm.rule.label)
                                 .font(.subheadline)
                                 .foregroundStyle(GhostTheme.textSecondary)
                         } else {
-                            Text("No alarm yet")
+                            Text("No alarm set")
                                 .font(.system(.title2, design: .rounded).weight(.bold))
                                 .foregroundStyle(GhostTheme.textPrimary)
-                            Text("Tap + to set your first wake-up.")
+                            Text("Set your wake-up time")
                                 .font(.subheadline)
                                 .foregroundStyle(GhostTheme.textSecondary)
                         }
                     }
                     .padding(GhostTheme.Space.l)
-                    .frame(maxWidth: .infinity, alignment: .leading)
                     .ghostCard()
                     .padding(.horizontal, 20)
-
-                    // Saved alarms list
-                    if !store.state.alarms.isEmpty {
-                        VStack(alignment: .leading, spacing: GhostTheme.Space.s) {
-                            Text("Your alarms")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(GhostTheme.textSecondary)
-                            ForEach(store.state.alarms) { alarm in
-                                HStack(spacing: GhostTheme.Space.s) {
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(String(format: "%02d:%02d", alarm.hour, alarm.minute))
-                                            .font(.system(.title3, design: .rounded).weight(.semibold))
-                                            .foregroundStyle(GhostTheme.textPrimary)
-                                            .monospacedDigit()
-                                        Text("\(alarm.label) · \(alarm.rule.rawValue)")
-                                            .font(.caption)
-                                            .foregroundStyle(GhostTheme.textSecondary)
-                                    }
-                                    Spacer(minLength: 0)
-                                    Button {
-                                        Task { await store.toggle(alarm) }
-                                    } label: {
-                                        Image(systemName: alarm.enabled ? "bell.fill" : "bell.slash")
-                                            .font(.subheadline)
-                                            .foregroundStyle(alarm.enabled ? GhostTheme.mint : GhostTheme.textSecondary)
-                                            .frame(width: 34, height: 34)
-                                            .background(GhostTheme.glass, in: Circle())
-                                    }
-                                    .buttonStyle(GhostTheme.GhostPressStyle(scale: 0.92))
-                                    Button {
-                                        store.delete(alarm)
-                                    } label: {
-                                        Image(systemName: "trash")
-                                            .font(.subheadline)
-                                            .foregroundStyle(GhostTheme.textSecondary)
-                                            .frame(width: 34, height: 34)
-                                            .background(GhostTheme.glass, in: Circle())
-                                    }
-                                    .buttonStyle(GhostTheme.GhostPressStyle(scale: 0.92))
-                                }
-                                .padding(.vertical, 4)
-                            }
-                        }
-                        .padding(GhostTheme.Space.l)
-                        .ghostCard()
-                        .padding(.horizontal, 20)
-                    }
 
                     // AI Coach card
                     VStack(alignment: .leading, spacing: GhostTheme.Space.s) {
@@ -219,8 +164,10 @@ extension RootView {
                     Spacer(minLength: 120)
                 }
             }
+            .sheet(isPresented: $showingAddAlarm) {
+                AddAlarmView()
+            }
         }
-        .sheet(isPresented: $showingAddAlarm) { AddAlarmView() }
     }
 }
 
@@ -232,16 +179,6 @@ extension RootView {
     struct WakeUpView: View {
         @Environment(AppStore.self) private var store
         @State private var animateGhost = false
-
-        private var wakeTimeText: String {
-            guard let next = store.nextAlarm else { return "--:--" }
-            let parts = Calendar.current.dateComponents([.hour, .minute], from: next)
-            return String(format: "%02d:%02d", parts.hour ?? 0, parts.minute ?? 0)
-        }
-
-        private var wakeDateText: String {
-            (store.nextAlarm ?? .now).formatted(.dateTime.weekday(.wide).month(.wide).day())
-        }
 
         var body: some View {
             VStack(spacing: 0) {
@@ -266,32 +203,39 @@ extension RootView {
                 .padding(.bottom, 24)
 
                 // Big time
-                Text(wakeTimeText)
-                    .font(.system(size: 96, weight: .thin, design: .rounded))
-                    .foregroundStyle(GhostTheme.textPrimary)
-                    .monospacedDigit()
-                    .contentTransition(.numericText())
+                if let alarm = store.nextAlarm {
+                    Text(alarm.time.formatted(date: .omitted, time: .shortened))
+                        .font(.system(size: 96, weight: .thin, design: .rounded))
+                        .foregroundStyle(GhostTheme.textPrimary)
+                        .monospacedDigit()
+                        .contentTransition(.numericText())
+                } else {
+                    Text("7:00")
+                        .font(.system(size: 96, weight: .thin, design: .rounded))
+                        .foregroundStyle(GhostTheme.textPrimary)
+                        .monospacedDigit()
+                }
 
-                Text(wakeDateText)
+                Text("Monday, October 28")
                     .font(.subheadline)
                     .foregroundStyle(GhostTheme.textSecondary)
                     .padding(.bottom, 40)
 
                 // Buttons
                 GhostTheme.GhostPillButton("I'm Awake", systemImage: "checkmark.circle.fill", prominent: true) {
-                    withAnimation(GhostTheme.Motion.bounce) { animateGhost = true }
-                    if !store.challengeCompleted { store.completeChallenge() }
+                    withAnimation { animateGhost.toggle() }
+                    Task { await store.completeChallenge() }
                 }
                 .padding(.horizontal, 20)
 
                 GhostTheme.GhostPillButton("Snooze · 5 min", systemImage: "clock.fill", prominent: false) {
-                    withAnimation(GhostTheme.Motion.bounce) { animateGhost = true }
+                    withAnimation { animateGhost.toggle() }
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 32)
 
                 // Weather at bottom
-                HStack(spacing: GhostTheme.Space.s) {
+                HStack(spacing: GhostTheme.Space.m) {
                     Image(systemName: "cloud.rain.fill")
                         .font(.subheadline)
                         .foregroundStyle(GhostTheme.textSecondary)
@@ -318,7 +262,11 @@ extension RootView {
     struct CoachTabView: View {
         @Environment(AppStore.self) private var store
         @State private var messageText = ""
-        @State private var doneItems: Set<String> = ["Drink a glass of water", "Stretch for two minutes"]
+        @State private var planItems: [PlanItem] = [
+            PlanItem(title: "drink a glass of water", done: false),
+            PlanItem(title: "stretch for two minutes", done: false),
+            PlanItem(title: "pick your first task", done: false),
+        ]
 
         var body: some View {
             VStack(spacing: 0) {
@@ -368,10 +316,10 @@ extension RootView {
                             Text("Morning plan")
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(GhostTheme.textPrimary)
-                            ForEach(planItems) { item in
+                            ForEach($planItems) { $item in
                                 HStack(spacing: GhostTheme.Space.s) {
                                     Button {
-                                        togglePlanItem(item.title)
+                                        item.done.toggle()
                                     } label: {
                                         Image(systemName: item.done ? "checkmark.circle.fill" : "circle")
                                             .font(.system(size: 18))
@@ -405,7 +353,10 @@ extension RootView {
                             .textFieldStyle(.plain)
                             .foregroundStyle(GhostTheme.textPrimary)
                         Button {
-                            sendMessage()
+                            Task {
+                                await store.send(messageText)
+                                messageText = ""
+                            }
                         } label: {
                             Image(systemName: "paperplane.fill")
                                 .font(.subheadline.weight(.semibold))
@@ -430,39 +381,9 @@ extension RootView {
                 Text("Good morning. What's one thing you want to get done today?")
                     .font(.body)
                     .foregroundStyle(GhostTheme.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 8)
             }
-            .ghostCard()
-            .padding(.horizontal, 20)
-        }
-
-        private var planItems: [PlanItem] {
-            [
-                PlanItem(title: "Drink a glass of water", done: doneItems.contains("Drink a glass of water")),
-                PlanItem(title: "Stretch for two minutes", done: doneItems.contains("Stretch for two minutes")),
-                PlanItem(title: "Pick your first task", done: doneItems.contains("Pick your first task"))
-            ]
-        }
-
-        private func togglePlanItem(_ title: String) {
-            if doneItems.contains(title) {
-                doneItems.remove(title)
-            } else {
-                doneItems.insert(title)
-            }
-        }
-
-        private func sendMessage() {
-            let text = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !text.isEmpty else { return }
-            messageText = ""
-            Task { await store.send(text) }
-        }
-
-        struct PlanItem: Identifiable, Hashable {
-            let title: String
-            var done: Bool
-            var id: String { title }
         }
     }
 }
@@ -474,76 +395,80 @@ extension RootView {
         @Environment(AppStore.self) private var store
 
         var body: some View {
-            List {
-                Section {
-                    Text(store.notificationsAllowed ? "Notifications: on" : "Notifications: off")
-                        .foregroundStyle(GhostTheme.textSecondary)
-                } header: {
-                    Text("Reminders")
-                }
+            VStack(spacing: GhostTheme.Space.l) {
+                GhostTheme.GhostHeader("Settings", subtitle: "Preferences and notifications")
+                    .padding(.horizontal, 20)
 
-                Section {
-                    Button("Clear chat") { store.clearChat() }
-                        .foregroundStyle(GhostTheme.textSecondary)
+                Toggle("Allow notifications", isOn: $store.notificationsAllowed)
+                    .font(.subheadline.weight(.medium))
+                    .padding(.horizontal, 20)
+
+                Button {
+                    Task { await store.clearChat() }
+                } label: {
+                    HStack {
+                        Image(systemName: "trash")
+                        Text("Clear chat history")
+                    }
                 }
+                .foregroundStyle(.red)
+                .padding(.horizontal, 20)
+
+                Spacer()
             }
-            .listStyle(.insetGrouped)
-            .navigationTitle("Settings")
-            .navigationBarTitleDisplayMode(.inline)
         }
     }
 }
 
-// MARK: - Add Alarm (sheet)
+// MARK: - Add Alarm
 
-struct AddAlarmView: View {
-    @Environment(AppStore.self) private var store
-    @Environment(\.dismiss) private var dismiss
-    @State private var time = Date()
-    @State private var enabled = true
-    @State private var repeatRule: RepeatRule = .weekdays
-    @State private var label = "Alarm"
+extension RootView {
+    struct AddAlarmView: View {
+        @Environment(AppStore.self) private var store
+        @Environment(\.dismiss) private var dismiss
+        @State private var label = ""
+        @State private var time = Date()
+        @State private var selectedRepeat: RepeatRule = .daily
 
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    DatePicker("Time", selection: $time, displayedComponents: .hourAndMinute)
-                        .datePickerStyle(.wheel)
-                } header: {
-                    Text("Alarm")
-                }
-
-                Section {
-                    Toggle("Enabled", isOn: $enabled)
-                    Picker("Repeat", selection: $repeatRule) {
-                        ForEach(RepeatRule.allCases) { rule in
-                            Text(rule.rawValue).tag(rule)
+        var body: some View {
+            NavigationStack {
+                Form {
+                    Section("Alarm") {
+                        TextField("Label", text: $label)
+                        DatePicker("Time", selection: $time, displayedComponents: .hourAndMinute)
+                        Picker("Repeat", selection: $selectedRepeat) {
+                            ForEach(RepeatRule.allCases, id: \.self) { rule in
+                                Text(rule.label).tag(rule)
+                            }
                         }
                     }
-                    .pickerStyle(.menu)
-                    TextField("Label", text: $label)
                 }
-
-                Section {
-                    GhostTheme.GhostPillButton("Save", prominent: true) {
-                        let alarm = WakeAlarm(
-                            label: label.isEmpty ? "Alarm" : label,
-                            time: time,
-                            rule: repeatRule
-                        )
-                        Task { await store.save(alarm) }
-                        dismiss()
+                .navigationTitle("New Alarm")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") { dismiss() }
                     }
-                }
-            }
-            .navigationTitle("New Alarm")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Save") {
+                            let alarm = WakeAlarm(label: label.isEmpty ? "Alarm" : label, time: time, rule: selectedRepeat)
+                            Task {
+                                _ = await store.save(alarm)
+                                dismiss()
+                            }
+                        }
+                        .disabled(label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    }
                 }
             }
         }
     }
+}
+
+// MARK: - PlanItem
+
+private struct PlanItem: Identifiable, Equatable {
+    let id = UUID()
+    var title: String
+    var done: Bool
 }
