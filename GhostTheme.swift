@@ -78,7 +78,12 @@ enum GhostTheme {
     // MARK: - Background with soft aurora glow
 
     struct GhostAurora: View {
-        var animated: Bool = false
+        var animated: Bool
+
+        init(animated: Bool = false) {
+            self.animated = animated
+        }
+
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
         var body: some View {
@@ -166,7 +171,12 @@ enum GhostTheme {
     // MARK: - Light sweep (opt-in; honours Reduce Motion)
 
     struct GhostShimmer: ViewModifier {
-        var active: Bool = true
+        var active: Bool
+
+        init(active: Bool = true) {
+            self.active = active
+        }
+
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
         @State private var phase: CGFloat = -1
 
@@ -356,8 +366,8 @@ enum GhostTheme {
                                   control1: CGPoint(x: cx + 6, y: h * 0.78),
                                   control2: CGPoint(x: w * 0.66, y: h * 0.68))
                     path.addCurve(to: CGPoint(x: w, y: h * 0.55),
-                                  control1: CGPoint(x: w * 0.84, y: h * 0.82),
-                                  control2: CGPoint(x: w * 0.92, y: h * 0.68))
+                                  control1: CGPoint(x: w * 0.92, y: h * 0.68),
+                                  control2: CGPoint(x: w, y: h * 0.55))
                 }
                 .fill(GhostTheme.ghostGlow.opacity(0.55))
                 .frame(width: size * 0.82, height: size * 0.92)
@@ -476,7 +486,7 @@ enum GhostTheme {
 
 }
 
-// MARK: - One-line adoption helpers (file scope: extensions must not be nested)
+// MARK: - One-line adoption helpers
 
 extension View {
     /// Glass card: rounded fill + hairline border + soft shadow.
