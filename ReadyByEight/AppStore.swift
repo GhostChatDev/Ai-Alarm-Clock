@@ -118,7 +118,6 @@ final class AppStore {
         } catch {
             center.removePendingNotificationRequests(withIdentifiers: requests.map(\.identifier))
             if let old = state.alarms.first(where: { $0.id == alarm.id }), old.enabled {
-                // Reconciliation on the next edit is safer than recursive retries.
                 self.error = "Scheduling failed. Re-save this reminder before relying on it."
             }
             throw error
