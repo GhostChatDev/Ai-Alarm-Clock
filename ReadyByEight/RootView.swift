@@ -276,10 +276,10 @@ extension RootView {
                             Text("Morning plan")
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(GhostTheme.textPrimary)
-                            ForEach(planItems, id: \.title) { item in
+                            ForEach(Array(planItems.enumerated()), id: \.element.title) { index, item in
                                 HStack(spacing: GhostTheme.Space.s) {
                                     Button {
-                                        store.togglePlanItem(item.title)
+                                        planItems[index].done.toggle()
                                     } label: {
                                         Image(systemName: item.done ? "checkmark.circle.fill" : "circle")
                                             .font(.system(size: 18))
@@ -344,19 +344,17 @@ extension RootView {
             .padding(.horizontal, 20)
         }
 
-        private var planItems: [PlanItem] {
-            [
-                PlanItem(title: "Drink a glass of water", done: true),
-                PlanItem(title: "Stretch for two minutes", done: true),
-                PlanItem(title: "Pick your first task", done: false)
-            ]
-        }
+        @State private var planItems: [PlanItem] = [
+            PlanItem(title: "Drink a glass of water", done: true),
+            PlanItem(title: "Stretch for two minutes", done: true),
+            PlanItem(title: "Pick your first task", done: false)
+        ]
 
         private func sendMessage() {
             let text = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !text.isEmpty else { return }
             messageText = ""
-            store.send(text)
+            Task { await store.send(text) }
         }
 
         struct PlanItem: Identifiable, Hashable {
