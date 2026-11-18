@@ -304,7 +304,7 @@ extension RootView {
 
                 // Message input bar
                 VStack(spacing: 0) {
-                    Divider().background(GhostTheme.border)
+                    Divider().background(GhostTheme.hairline)
                     HStack(spacing: GhostTheme.Space.s) {
                         Image(systemName: "mic.fill")
                             .font(.subheadline)
