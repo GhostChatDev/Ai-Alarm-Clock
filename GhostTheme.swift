@@ -480,18 +480,18 @@ enum GhostTheme {
 extension View {
     /// Glass card: rounded fill + hairline border + soft shadow.
     func ghostCard(radius: CGFloat = GhostTheme.Radius.card, glow: Bool = false) -> some View {
-        modifier(GhostCard(radius: radius, glow: glow))
+        modifier(GhostTheme.GhostCard(radius: radius, glow: glow))
     }
 
     /// Full-screen look: aurora background, text colour and accent tint.
     func ghostScreen(animated: Bool = false) -> some View {
-        background(GhostAurora(animated: animated))
+        background(GhostTheme.GhostAurora(animated: animated))
             .foregroundStyle(GhostTheme.textPrimary)
             .tint(GhostTheme.mint)
     }
 
     func ghostShimmer(_ active: Bool = true) -> some View {
-        modifier(GhostShimmer(active: active))
+        modifier(GhostTheme.GhostShimmer(active: active))
     }
 
     func ghostGlow(_ color: Color = GhostTheme.mint, radius: CGFloat = 22) -> some View {
