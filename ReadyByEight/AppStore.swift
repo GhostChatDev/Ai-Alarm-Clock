@@ -38,7 +38,11 @@ final class AppStore {
     }
 
     func refresh() async {
-        let settings = await center.notificationSettings()
+        let settings = await withCheckedContinuation { continuation in
+            UNUserNotificationCenter.current().getNotificationSettings { settings in
+                continuation.resume(returning: settings)
+            }
+        }
         notificationsAllowed = settings.authorizationStatus == .authorized
             || settings.authorizationStatus == .provisional
     }
@@ -114,7 +118,6 @@ final class AppStore {
         } catch {
             center.removePendingNotificationRequests(withIdentifiers: requests.map(\.identifier))
             if let old = state.alarms.first(where: { $0.id == alarm.id }), old.enabled {
-                // Reconciliation on the next edit is safer than recursive retries.
                 self.error = "Scheduling failed. Re-save this reminder before relying on it."
             }
             throw error
