@@ -6,18 +6,20 @@ struct RootView: View {
     @State private var selectedTab: Tab = .home
 
     enum Tab: String, CaseIterable, Identifiable {
-        case home, coach, settings
+        case home, wake, coach, settings
         var id: String { rawValue }
         var icon: String {
             switch self {
             case .home: return "house.fill"
+            case .wake: return "alarm.fill"
             case .coach: return "person.circle.fill"
             case .settings: return "gear"
             }
         }
         var title: String {
             switch self {
-            case .home: return "Home"
+            case .home: return "Night"
+            case .wake: return "Wake"
             case .coach: return "Coach"
             case .settings: return "Settings"
             }
@@ -28,6 +30,7 @@ struct RootView: View {
         Group {
             switch selectedTab {
             case .home: HomeView()
+            case .wake: WakeUpView()
             case .coach: CoachTabView()
             case .settings: SettingsView()
             }
@@ -71,33 +74,109 @@ extension RootView {
     /// Home screen: alarm card, "Ready for tomorrow?" coach card, weather card.
     struct HomeView: View {
         @Environment(AppStore.self) private var store
+        @State private var showingAddAlarm = false
 
         var body: some View {
             ScrollView {
                 VStack(spacing: GhostTheme.Space.l) {
-                    GhostTheme.GhostHeader("Ghost Coach", subtitle: "A better morning starts tonight.")
-                        .padding(.horizontal, 20)
+                    HStack(alignment: .top) {
+                        GhostTheme.GhostHeader("Ghost Coach", subtitle: "A better morning starts tonight.")
+                        Button {
+                            showingAddAlarm = true
+                        } label: {
+                            Image(systemName: "plus")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundStyle(GhostTheme.inkDeep)
+                                .frame(width: 40, height: 40)
+                                .background(GhostTheme.accentGradient, in: Circle())
+                        }
+                        .buttonStyle(GhostTheme.GhostPressStyle(scale: 0.92))
+                        .accessibilityLabel("Add alarm")
+                    }
+                    .padding(.horizontal, 20)
 
                     // Alarm card
                     VStack(alignment: .leading, spacing: GhostTheme.Space.s) {
                         HStack {
-                            Text("Alarm")
+                            Text("Next alarm")
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(GhostTheme.textSecondary)
                             Spacer()
-                            Toggle("7:00 AM", isOn: .constant(true))
-                                .toggleStyle(.switch)
+                            if store.state.alarms.contains(where: \.enabled) {
+                                Image(systemName: "bell.fill")
+                                    .font(.caption)
+                                    .foregroundStyle(GhostTheme.mint)
+                            }
                         }
-                        .font(.system(.title2, design: .rounded).weight(.bold))
-                        .foregroundStyle(GhostTheme.textPrimary)
 
-                        Text("Mon–Fri")
-                            .font(.subheadline)
-                            .foregroundStyle(GhostTheme.textSecondary)
+                        if let next = store.nextAlarm {
+                            Text(next.formatted(date: .omitted, time: .shortened))
+                                .font(.system(.largeTitle, design: .rounded).weight(.bold))
+                                .foregroundStyle(GhostTheme.textPrimary)
+                                .monospacedDigit()
+                            Text(store.state.alarms.first(where: \.enabled)?.label ?? "A fresh start")
+                                .font(.subheadline)
+                                .foregroundStyle(GhostTheme.textSecondary)
+                        } else {
+                            Text("No alarm yet")
+                                .font(.system(.title2, design: .rounded).weight(.bold))
+                                .foregroundStyle(GhostTheme.textPrimary)
+                            Text("Tap + to set your first wake-up.")
+                                .font(.subheadline)
+                                .foregroundStyle(GhostTheme.textSecondary)
+                        }
                     }
                     .padding(GhostTheme.Space.l)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .ghostCard()
                     .padding(.horizontal, 20)
+
+                    // Saved alarms list
+                    if !store.state.alarms.isEmpty {
+                        VStack(alignment: .leading, spacing: GhostTheme.Space.s) {
+                            Text("Your alarms")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(GhostTheme.textSecondary)
+                            ForEach(store.state.alarms) { alarm in
+                                HStack(spacing: GhostTheme.Space.s) {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(String(format: "%02d:%02d", alarm.hour, alarm.minute))
+                                            .font(.system(.title3, design: .rounded).weight(.semibold))
+                                            .foregroundStyle(GhostTheme.textPrimary)
+                                            .monospacedDigit()
+                                        Text("\(alarm.label) · \(alarm.rule.rawValue)")
+                                            .font(.caption)
+                                            .foregroundStyle(GhostTheme.textSecondary)
+                                    }
+                                    Spacer(minLength: 0)
+                                    Button {
+                                        Task { await store.toggle(alarm) }
+                                    } label: {
+                                        Image(systemName: alarm.enabled ? "bell.fill" : "bell.slash")
+                                            .font(.subheadline)
+                                            .foregroundStyle(alarm.enabled ? GhostTheme.mint : GhostTheme.textSecondary)
+                                            .frame(width: 34, height: 34)
+                                            .background(GhostTheme.glass, in: Circle())
+                                    }
+                                    .buttonStyle(GhostTheme.GhostPressStyle(scale: 0.92))
+                                    Button {
+                                        store.delete(alarm)
+                                    } label: {
+                                        Image(systemName: "trash")
+                                            .font(.subheadline)
+                                            .foregroundStyle(GhostTheme.textSecondary)
+                                            .frame(width: 34, height: 34)
+                                            .background(GhostTheme.glass, in: Circle())
+                                    }
+                                    .buttonStyle(GhostTheme.GhostPressStyle(scale: 0.92))
+                                }
+                                .padding(.vertical, 4)
+                            }
+                        }
+                        .padding(GhostTheme.Space.l)
+                        .ghostCard()
+                        .padding(.horizontal, 20)
+                    }
 
                     // AI Coach card
                     VStack(alignment: .leading, spacing: GhostTheme.Space.s) {
@@ -141,6 +220,7 @@ extension RootView {
                 }
             }
         }
+        .sheet(isPresented: $showingAddAlarm) { AddAlarmView() }
     }
 }
 
@@ -152,6 +232,16 @@ extension RootView {
     struct WakeUpView: View {
         @Environment(AppStore.self) private var store
         @State private var animateGhost = false
+
+        private var wakeTimeText: String {
+            guard let next = store.nextAlarm else { return "--:--" }
+            let parts = Calendar.current.dateComponents([.hour, .minute], from: next)
+            return String(format: "%02d:%02d", parts.hour ?? 0, parts.minute ?? 0)
+        }
+
+        private var wakeDateText: String {
+            (store.nextAlarm ?? .now).formatted(.dateTime.weekday(.wide).month(.wide).day())
+        }
 
         var body: some View {
             VStack(spacing: 0) {
@@ -176,25 +266,26 @@ extension RootView {
                 .padding(.bottom, 24)
 
                 // Big time
-                Text("7:00")
+                Text(wakeTimeText)
                     .font(.system(size: 96, weight: .thin, design: .rounded))
                     .foregroundStyle(GhostTheme.textPrimary)
                     .monospacedDigit()
                     .contentTransition(.numericText())
 
-                Text("Monday, October 28")
+                Text(wakeDateText)
                     .font(.subheadline)
                     .foregroundStyle(GhostTheme.textSecondary)
                     .padding(.bottom, 40)
 
                 // Buttons
                 GhostTheme.GhostPillButton("I'm Awake", systemImage: "checkmark.circle.fill", prominent: true) {
-                    withAnimation { animateGhost.toggle() }
+                    withAnimation(GhostTheme.Motion.bounce) { animateGhost = true }
+                    if !store.challengeCompleted { store.completeChallenge() }
                 }
                 .padding(.horizontal, 20)
 
                 GhostTheme.GhostPillButton("Snooze · 5 min", systemImage: "clock.fill", prominent: false) {
-                    withAnimation { animateGhost.toggle() }
+                    withAnimation(GhostTheme.Motion.bounce) { animateGhost = true }
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 32)
