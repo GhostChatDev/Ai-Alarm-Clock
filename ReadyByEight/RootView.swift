@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// Root shell with the three tabs from the photos: Home / Tonight, AI Morning Coach, Settings.
 /// The Wake-Up Alarm screen is presented as a full-screen cover when the alarm is active.
@@ -103,11 +104,11 @@ extension RootView {
                                     .foregroundStyle(GhostTheme.accentGradient)
                             }
                         }
-                        if let alarm = store.nextAlarm {
+                        if let alarm = ghostUpcomingAlarm(in: store) {
                             Text(alarm.label)
                                 .font(.system(.title2, design: .rounded).weight(.bold))
                                 .foregroundStyle(GhostTheme.textPrimary)
-                            Text(alarm.displayDate.formatted(date: .omitted, time: .shortened) + " · " + alarm.rule.label)
+                            Text(alarm.displayDate.formatted(date: .omitted, time: .shortened) + " · " + alarm.rule.rawValue)
                                 .font(.subheadline)
                                 .foregroundStyle(GhostTheme.textSecondary)
                         } else {
@@ -203,7 +204,7 @@ extension RootView {
                 .padding(.bottom, 24)
 
                 // Big time
-                if let alarm = store.nextAlarm {
+                if let alarm = ghostUpcomingAlarm(in: store) {
                     Text(alarm.displayDate.formatted(date: .omitted, time: .shortened))
                         .font(.system(size: 96, weight: .thin, design: .rounded))
                         .foregroundStyle(GhostTheme.textPrimary)
@@ -399,9 +400,23 @@ extension RootView {
                 GhostTheme.GhostHeader("Settings", subtitle: "Preferences and notifications")
                     .padding(.horizontal, 20)
 
-                Toggle("Allow notifications", isOn: $store.notificationsAllowed)
-                    .font(.subheadline.weight(.medium))
-                    .padding(.horizontal, 20)
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Allow notifications")
+                            .font(.subheadline.weight(.medium))
+                        Text(store.notificationsAllowed ? "On" : "Off")
+                            .font(.caption)
+                            .foregroundStyle(GhostTheme.textSecondary)
+                    }
+                    Spacer()
+                    Button("Open Settings") {
+                        if let url = URL(string: UIApplication.openSettingsURLString) {
+                            UIApplication.shared.open(url)
+                        }
+                    }
+                    .font(.subheadline.weight(.semibold))
+                }
+                .padding(.horizontal, 20)
 
                 Button {
                     Task { await store.clearChat() }
@@ -438,7 +453,7 @@ extension RootView {
                         DatePicker("Time", selection: $time, displayedComponents: .hourAndMinute)
                         Picker("Repeat", selection: $selectedRepeat) {
                             ForEach(RepeatRule.allCases, id: \.self) { rule in
-                                Text(rule.label).tag(rule)
+                                Text(rule.rawValue).tag(rule)
                             }
                         }
                     }
@@ -471,4 +486,18 @@ private struct PlanItem: Identifiable, Equatable {
     let id = UUID()
     var title: String
     var done: Bool
+}
+
+// MARK: - Shared helpers
+
+/// The enabled alarm with the soonest next occurrence, or nil when nothing is scheduled.
+func ghostUpcomingAlarm(in store: AppStore, now: Date = .now) -> WakeAlarm? {
+    store.state.alarms
+        .filter { $0.enabled }
+        .compactMap { alarm -> (WakeAlarm, Date)? in
+            guard let next = alarm.nextOccurrence(after: now) else { return nil }
+            return (alarm, next)
+        }
+        .min { $0.1 < $1.1 }?
+        .0
 }
