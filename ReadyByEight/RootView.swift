@@ -227,6 +227,11 @@ extension RootView {
     struct CoachTabView: View {
         @Environment(AppStore.self) private var store
         @State private var messageText = ""
+        @State private var planItems = [
+            PlanItem(title: "Drink a glass of water", done: true),
+            PlanItem(title: "Stretch for two minutes", done: true),
+            PlanItem(title: "Pick your first task", done: false)
+        ]
 
         var body: some View {
             VStack(spacing: 0) {
