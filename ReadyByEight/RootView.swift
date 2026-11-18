@@ -107,7 +107,7 @@ extension RootView {
                             Text(alarm.label)
                                 .font(.system(.title2, design: .rounded).weight(.bold))
                                 .foregroundStyle(GhostTheme.textPrimary)
-                            Text(alarm.time.formatted(date: .omitted, time: .shortened) + " · " + alarm.rule.label)
+                            Text(alarm.displayDate.formatted(date: .omitted, time: .shortened) + " · " + alarm.rule.label)
                                 .font(.subheadline)
                                 .foregroundStyle(GhostTheme.textSecondary)
                         } else {
@@ -204,7 +204,7 @@ extension RootView {
 
                 // Big time
                 if let alarm = store.nextAlarm {
-                    Text(alarm.time.formatted(date: .omitted, time: .shortened))
+                    Text(alarm.displayDate.formatted(date: .omitted, time: .shortened))
                         .font(.system(size: 96, weight: .thin, design: .rounded))
                         .foregroundStyle(GhostTheme.textPrimary)
                         .monospacedDigit()
