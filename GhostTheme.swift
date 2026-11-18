@@ -20,8 +20,16 @@ enum GhostTheme {
     static let teal = Color(red: 0.47, green: 0.30, blue: 0.86)
     static let pink = Color(red: 1.0, green: 0.78, blue: 0.86)
     static let pinkSoft = Color(red: 1.0, green: 0.88, blue: 0.94)
-    static let purple = Color(red: 0.68, green: 0.62, blue: 0.96)
-    static let purpleSoft = Color(red: 0.78, green: 0.72, blue: 1.0)
+    static let purple = Color(red: 0.56, green: 0.36, blue: 0.96)
+    static let purpleSoft = Color(red: 0.72, green: 0.62, blue: 0.98)
+    static let lavenderTitle = Color(red: 0.68, green: 0.52, blue: 0.98)
+    static let weatherTop = Color(red: 0.42, green: 0.24, blue: 0.90)
+    static let weatherBottom = Color(red: 0.49, green: 0.36, blue: 0.84)
+    static let planCardBg = Color(red: 0.16, green: 0.11, blue: 0.27)
+    static let chatBubbleCoach = Color(red: 0.43, green: 0.43, blue: 0.54)
+    static let warmCream = Color(red: 0.93, green: 0.85, blue: 0.74)
+    static let warmBrown = Color(red: 0.45, green: 0.35, blue: 0.26)
+    static let awakePill = Color(red: 0.74, green: 0.68, blue: 0.98)
     static let yellow = Color(red: 1.0, green: 0.92, blue: 0.55)
 
     static let inkDeep = Color(red: 0.02, green: 0.025, blue: 0.04)
@@ -257,6 +265,55 @@ enum GhostTheme {
         }
     }
 
+    struct GhostAlarmToggle: View {
+        @Binding var isOn: Bool
+        var onChange: ((Bool) -> Void)? = nil
+
+        var body: some View {
+            Button {
+                let next = !isOn
+                withAnimation(GhostTheme.Motion.press) { isOn = next }
+                onChange?(next)
+            } label: {
+                ZStack(alignment: isOn ? .trailing : .leading) {
+                    Capsule()
+                        .fill(
+                            isOn
+                            ? LinearGradient(colors: [GhostTheme.purple, GhostTheme.purpleSoft], startPoint: .leading, endPoint: .trailing)
+                            : LinearGradient(colors: [Color.white.opacity(0.18), Color.white.opacity(0.12)], startPoint: .leading, endPoint: .trailing)
+                        )
+                        .frame(width: 68, height: 34)
+                        .shadow(color: isOn ? GhostTheme.purple.opacity(0.55) : .clear, radius: 10, x: 0, y: 2)
+
+                    HStack(spacing: 4) {
+                        if isOn {
+                            Text("ON")
+                                .font(.system(size: 12, weight: .bold, design: .rounded))
+                                .foregroundStyle(.white)
+                                .padding(.leading, 10)
+                            Spacer(minLength: 0)
+                        } else {
+                            Spacer(minLength: 0)
+                            Text("OFF")
+                                .font(.system(size: 11, weight: .bold, design: .rounded))
+                                .foregroundStyle(GhostTheme.textSecondary)
+                                .padding(.trailing, 8)
+                        }
+                    }
+                    .frame(width: 68, height: 34)
+
+                    Circle()
+                        .fill(Color.white)
+                        .frame(width: 26, height: 26)
+                        .padding(.horizontal, 4)
+                        .shadow(color: .black.opacity(0.25), radius: 3, x: 0, y: 1)
+                }
+            }
+            .buttonStyle(GhostPressStyle(scale: 0.95))
+            .accessibilityLabel(isOn ? "Alarm On" : "Alarm Off")
+        }
+    }
+
     struct GhostTabItem: View {
         let icon: String
         let title: String
@@ -293,8 +350,14 @@ enum GhostTheme {
     /// - Blinks naturally every few seconds when idle.
     /// - Honours Reduce Motion (static pose).
     struct GhostMascot: View {
+        enum Mood {
+            case cheerful
+            case winking
+            case happyClosedEyes
+        }
         var isSpeaking: Bool = false
         var size: CGFloat = 72
+        var mood: Mood = .cheerful
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
         @State private var blink: Bool = false
         @State private var blush: Bool = false
@@ -384,8 +447,8 @@ enum GhostTheme {
             ZStack {
                 // Eyes
                 HStack(spacing: size * 0.22) {
-                    eye
-                    eye
+                    leftEye
+                    rightEye
                 }
                 .offset(y: -size * 0.06)
 
@@ -419,6 +482,32 @@ enum GhostTheme {
                     }
                 }
             }
+        }
+
+        @ViewBuilder
+        private var leftEye: some View {
+            if mood == .happyClosedEyes {
+                happyArcEye
+            } else {
+                eye
+            }
+        }
+
+        @ViewBuilder
+        private var rightEye: some View {
+            if mood == .happyClosedEyes || mood == .winking {
+                happyArcEye
+            } else {
+                eye
+            }
+        }
+
+        private var happyArcEye: some View {
+            Circle()
+                .trim(from: 0.55, to: 0.95)
+                .stroke(GhostTheme.inkDeep, style: StrokeStyle(lineWidth: max(2, size * 0.045), lineCap: .round))
+                .frame(width: size * 0.16, height: size * 0.16)
+                .offset(y: size * 0.03)
         }
 
         private var eye: some View {
