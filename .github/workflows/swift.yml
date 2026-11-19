@@ -70,7 +70,7 @@ jobs:
       - name: Generate the Xcode project (XcodeGen)
         run: |
           brew install xcodegen
-          xcodegen generate --spec ci-project.yml
+          xcodegen generate --spec project.yml
 
       - name: Build for iOS Simulator
         run: |
