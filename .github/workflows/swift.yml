@@ -43,6 +43,7 @@ jobs:
               sources:
                 - path: ReadyByEight
                 - path: GhostTheme.swift
+                - path: AppStore.swift
               settings:
                 base:
                   PRODUCT_BUNDLE_IDENTIFIER: dev.ghostchat.ReadyByEight

@@ -7,6 +7,9 @@ import FoundationModels
 @MainActor @Observable
 final class AppStore {
     private(set) var state = SavedState()
+    let device = GhostDevice()
+    private(set) var planDay = UserDefaults.standard.string(forKey: "morningPlanDay") ?? ""
+    private(set) var completedPlanItems = Set(UserDefaults.standard.stringArray(forKey: "morningPlanItems") ?? [])
     private(set) var busy = false
     private(set) var sending = false
     private(set) var isCoachSpeaking = false
@@ -29,6 +32,7 @@ final class AppStore {
     var nextAlarm: Date? { state.alarms.compactMap { $0.nextOccurrence() }.min() }
     var challengeCompleted: Bool { state.completedDay == SavedState.dayKey() }
     var coachName: String {
+        if device.remoteEnabled { return "Online AI · Sends chat to your provider" }
         #if canImport(FoundationModels)
         if #available(iOS 26.0, *), case .available = SystemLanguageModel.default.availability {
             return "On-device AI · Private"
@@ -99,7 +103,7 @@ final class AppStore {
         let content = UNMutableNotificationContent()
         content.title = alarm.label
         content.body = "A fresh start. Sit up, breathe, and take your first small step."
-        content.sound = .default
+        content.sound = device.notificationSound.map { UNNotificationSound(named: UNNotificationSoundName(rawValue: $0)) } ?? .default
         var requests: [UNNotificationRequest] = []
         if alarm.rule == .once {
             let parts = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute],
@@ -148,6 +152,53 @@ final class AppStore {
         } catch { self.error = "Couldn’t delete the reminder. \(error.localizedDescription)" }
     }
 
+    func isPlanItemCompleted(_ id: String) -> Bool {
+        planDay == SavedState.dayKey() && completedPlanItems.contains(id)
+    }
+
+    func togglePlanItem(_ id: String) {
+        let today = SavedState.dayKey()
+        if planDay != today { completedPlanItems.removeAll(); planDay = today }
+        if completedPlanItems.contains(id) { completedPlanItems.remove(id) }
+        else { completedPlanItems.insert(id) }
+        UserDefaults.standard.set(planDay, forKey: "morningPlanDay")
+        UserDefaults.standard.set(Array(completedPlanItems), forKey: "morningPlanItems")
+    }
+
+    func snooze() async -> Bool {
+        do {
+            let granted = try await center.requestAuthorization(options: [.alert, .sound])
+            await refresh()
+            guard granted else {
+                error = "Enable notifications in Settings to use snooze."
+                return false
+            }
+            let content = UNMutableNotificationContent()
+            content.title = "Good morning"
+            content.body = "Your five-minute snooze is over."
+            content.sound = device.notificationSound.map { UNNotificationSound(named: UNNotificationSoundName(rawValue: $0)) } ?? .default
+            let request = UNNotificationRequest(identifier: "wake.snooze", content: content,
+                trigger: UNTimeIntervalNotificationTrigger(timeInterval: 300, repeats: false))
+            try await center.add(request)
+            return true
+        } catch {
+            self.error = "Couldn’t schedule snooze. \(error.localizedDescription)"
+            return false
+        }
+    }
+
+    func cancelSnooze() {
+        center.removePendingNotificationRequests(withIdentifiers: ["wake.snooze"])
+        center.removeDeliveredNotifications(withIdentifiers: ["wake.snooze"])
+    }
+
+    func updateAlarmSounds() async {
+        for alarm in state.alarms where alarm.enabled && alarm.nextOccurrence() != nil {
+            do { try await schedule(alarm) }
+            catch { self.error = "Couldn’t update the reminder sound. Re-save your reminders. \(error.localizedDescription)"; return }
+        }
+    }
+
     func completeChallenge() {
         var candidate = state
         candidate.completedDay = challengeCompleted ? nil : SavedState.dayKey()
@@ -178,6 +229,10 @@ final class AppStore {
         }
         let nextFormatted = nextAlarm?.formatted(date: .abbreviated, time: .shortened)
         var response = OfflineCoach.reply(to: text, nextAlarm: nextFormatted)
+        if device.remoteEnabled {
+            do { response = try await device.reply(messages: state.messages) }
+            catch { response = "Online AI is unavailable: \(error.localizedDescription)\n\nOffline coach: " + response }
+        } else {
         #if canImport(FoundationModels)
         if #available(iOS 26.0, *), case .available = SystemLanguageModel.default.availability {
             do {
@@ -199,11 +254,16 @@ final class AppStore {
             }
         }
         #endif
+        }
         candidate = state
         candidate.messages.append(CoachMessage(isUser: false, text: response))
         candidate.messages = Array(candidate.messages.suffix(60))
         do { try persist(candidate) }
         catch { self.error = "Couldn’t save the reply. \(error.localizedDescription)" }
+        if device.voiceEnabled {
+            do { try device.say(response) }
+            catch { self.error = "Couldn’t play speech. \(error.localizedDescription)" }
+        }
         animateCoachSpeaking(for: response)
     }
 
