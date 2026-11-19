@@ -436,6 +436,25 @@ struct SettingsTabView: View {
                     }
                 }
                 .ghostCard()
+
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 10) {
+                        GhostTheme.GhostMascot(isSpeaking: false, size: 32)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Made by Agent.Ghost Coded")
+                                .font(.subheadline.weight(.bold))
+                                .foregroundStyle(GhostTheme.textPrimary)
+                            Text("Total Cost 10$")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(GhostTheme.purpleSoft)
+                            Text("ghostchat.tech via Ghost Code")
+                                .font(.caption2)
+                                .foregroundStyle(GhostTheme.textSecondary)
+                        }
+                        Spacer()
+                    }
+                }
+                .ghostCard()
             }
             .padding(20)
             .frame(maxWidth: 680)
