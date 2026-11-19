@@ -192,7 +192,7 @@ struct HomeView: View {
                     Spacer()
                     GhostTheme.GhostAlarmToggle(isOn: Binding(
                         get: { alarm.enabled },
-                        set: { store.setEnabled(alarm, $0) }
+                        set: { _ in Task { await store.toggle(alarm) } }
                     ))
                 }
             } else {
@@ -256,7 +256,7 @@ struct HomeView: View {
                             Spacer()
                             GhostTheme.GhostAlarmToggle(isOn: Binding(
                                 get: { item.enabled },
-                                set: { store.setEnabled(item, $0) }
+                                set: { _ in Task { await store.toggle(item) } }
                             ))
                             Button(role: .destructive) { store.delete(item) } label: {
                                 Image(systemName: "trash")
@@ -390,11 +390,12 @@ struct WakeTabView: View {
                 VStack(spacing: 14) {
                     Button {
                         store.device.stopMusic()
-                        store.completeToday()
+                        store.cancelSnooze()
+                        if !store.challengeCompleted { store.completeChallenge() }
                         try? store.device.say("Awesome job waking up! Let's check your morning plan.")
                         switchTab(2)
                     } label: {
-                        Text(store.completedToday ? "I’m Awake ✓" : "I’m Awake")
+                        Text(store.challengeCompleted ? "I’m Awake ✓" : "I’m Awake")
                             .font(.title3.weight(.semibold))
                             .foregroundStyle(GhostTheme.ink)
                             .frame(maxWidth: .infinity)
@@ -405,8 +406,11 @@ struct WakeTabView: View {
                     .buttonStyle(GhostTheme.GhostPressStyle())
 
                     Button {
-                        store.snoozeFiveMinutes()
-                        snoozeBanner = "Snoozed for 5 minutes · Reminder scheduled"
+                        Task {
+                            if await store.snooze() {
+                                snoozeBanner = "Snoozed for 5 minutes · Reminder scheduled"
+                            }
+                        }
                     } label: {
                         Text("Snooze · 5 min")
                             .font(.title3.weight(.medium))

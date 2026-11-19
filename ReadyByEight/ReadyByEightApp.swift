@@ -82,9 +82,9 @@ struct MorningCoachScreen: View {
                             .font(.title3.weight(.bold))
                             .foregroundStyle(.white)
                         ForEach(planItems, id: \.id) { item in
-                            let done = store.planDone.contains(item.id)
+                            let done = store.isPlanItemCompleted(item.id)
                             Button {
-                                store.togglePlan(item.id)
+                                store.togglePlanItem(item.id)
                             } label: {
                                 HStack(spacing: 12) {
                                     ZStack {
@@ -354,9 +354,13 @@ struct SettingsTabView: View {
 
                     HStack(spacing: 10) {
                         Button {
-                            store.device.saveKey(keyInput.trimmingCharacters(in: .whitespacesAndNewlines))
-                            keyInput = ""
-                            keySavedBanner = true
+                            do {
+                                try store.device.saveKey(keyInput.trimmingCharacters(in: .whitespacesAndNewlines))
+                                keyInput = ""
+                                keySavedBanner = true
+                            } catch {
+                                store.error = error.localizedDescription
+                            }
                         } label: {
                             Text("Save Key to Keychain")
                                 .font(.caption.weight(.semibold))
@@ -367,7 +371,7 @@ struct SettingsTabView: View {
                         }
                         if store.device.hasKey {
                             Button(role: .destructive) {
-                                store.device.saveKey("")
+                                try? store.device.saveKey("")
                                 keySavedBanner = false
                             } label: {
                                 Text("Clear Key")
@@ -456,8 +460,16 @@ struct AddAlarmView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
-                        store.saveAlarm(id: alarm?.id, label: label, time: time, rule: rule)
-                        dismiss()
+                        var candidate = WakeAlarm(label: label, time: time, rule: rule)
+                        if let existing = alarm {
+                            candidate.id = existing.id
+                            candidate.enabled = existing.enabled
+                        }
+                        Task {
+                            if await store.save(candidate) {
+                                dismiss()
+                            }
+                        }
                     }
                 }
             }

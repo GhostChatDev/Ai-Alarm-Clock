@@ -13,6 +13,9 @@ enum GhostTheme {
     static let pink = Color(red: 1, green: 0.70, blue: 0.81)
     static let yellow = Color(red: 1, green: 0.87, blue: 0.57)
     static let ghostWhite = Color(red: 0.98, green: 0.97, blue: 1)
+    static let warmCream = Color(red: 0.98, green: 0.92, blue: 0.80)
+    static let cardElevated = Color(red: 0.18, green: 0.16, blue: 0.28)
+    static let danger = Color(red: 0.98, green: 0.42, blue: 0.48)
     static let textPrimary = ghostWhite
     static let textSecondary = Color(red: 0.70, green: 0.66, blue: 0.80)
     static let hairline = Color.white.opacity(0.09)
@@ -84,6 +87,34 @@ enum GhostTheme {
                         else { GhostTheme.glassStrong }
                     }.clipShape(RoundedRectangle(cornerRadius: 18))
             }.buttonStyle(GhostPressStyle())
+        }
+    }
+    struct GhostAlarmToggle: View {
+        @Binding var isOn: Bool
+        var body: some View {
+            Button {
+                withAnimation(GhostTheme.Motion.bounce) { isOn.toggle() }
+            } label: {
+                ZStack(alignment: isOn ? .trailing : .leading) {
+                    Capsule()
+                        .fill(isOn ? GhostTheme.purple : GhostTheme.cardElevated)
+                        .frame(width: 64, height: 34)
+                    if isOn {
+                        Text("ON")
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.leading, 11)
+                    }
+                    Circle()
+                        .fill(.white)
+                        .frame(width: 26, height: 26)
+                        .padding(4)
+                }
+                .frame(width: 64, height: 34)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(isOn ? "Alarm On" : "Alarm Off")
         }
     }
     struct GhostTabItem: View {
@@ -159,8 +190,8 @@ enum GhostTheme {
 }
 
 extension View {
-    func ghostCard(radius: CGFloat = 26, glow: Bool = false) -> some View {
-        modifier(GhostTheme.GhostCard(radius: radius, glow: glow))
+    func ghostCard(radius: CGFloat = 26, glow: Bool = false, elevated: Bool = false) -> some View {
+        modifier(GhostTheme.GhostCard(radius: radius, glow: glow || elevated))
     }
     func ghostScreen(animated: Bool = false) -> some View {
         background(GhostTheme.GhostAurora(animated: animated))
