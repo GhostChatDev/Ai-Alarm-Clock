@@ -29,7 +29,8 @@ jobs:
 
       - name: Write XcodeGen spec
         run: |
-          cat > ci-project.yml <<'YAML'
+          cp AppStore.swift GhostDevice.generated.swift
+          cat > project.yml <<'YAML'
           name: ReadyByEight
           options:
             bundleIdPrefix: dev.ghostchat
@@ -43,6 +44,7 @@ jobs:
               sources:
                 - path: ReadyByEight
                 - path: GhostTheme.swift
+                - path: GhostDevice.generated.swift
               settings:
                 base:
                   PRODUCT_BUNDLE_IDENTIFIER: dev.ghostchat.ReadyByEight
@@ -63,12 +65,12 @@ jobs:
               run:
                 config: Debug
           YAML
-          cat ci-project.yml
+          cat project.yml
 
       - name: Generate the Xcode project (XcodeGen)
         run: |
           brew install xcodegen
-          xcodegen generate --spec ci-project.yml
+          xcodegen generate --spec project.yml
 
       - name: Build for iOS Simulator
         run: |
