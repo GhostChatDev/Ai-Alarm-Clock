@@ -1,6 +1,22 @@
 import SwiftUI
+import SwiftData
 import UserNotifications
 import UniformTypeIdentifiers
+
+@Model
+final class MorningGoalRecord {
+    var title: String
+    var dayKey: String
+    var isCompleted: Bool
+    var createdAt: Date
+
+    init(title: String, dayKey: String = SavedState.dayKey(), isCompleted: Bool = false, createdAt: Date = .now) {
+        self.title = title
+        self.dayKey = dayKey
+        self.isCompleted = isCompleted
+        self.createdAt = createdAt
+    }
+}
 
 @main
 struct ReadyByEightApp: App {
@@ -17,11 +33,14 @@ struct ReadyByEightApp: App {
                 .environment(store)
                 .preferredColorScheme(.dark)
         }
+        .modelContainer(for: MorningGoalRecord.self)
     }
 }
 
 struct MorningCoachScreen: View {
     @Environment(AppStore.self) private var store
+    @Environment(\.modelContext) private var modelContext
+    @Query(sort: \MorningGoalRecord.createdAt, order: .reverse) private var savedGoals: [MorningGoalRecord]
     @State private var draft = ""
     @FocusState private var focused: Bool
 
@@ -103,6 +122,34 @@ struct MorningCoachScreen: View {
                                     Text(item.title)
                                         .font(.body)
                                         .foregroundStyle(.white)
+                                    Spacer()
+                                }
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        ForEach(savedGoals.prefix(3)) { goal in
+                            Button {
+                                goal.isCompleted.toggle()
+                                try? modelContext.save()
+                            } label: {
+                                HStack(spacing: 12) {
+                                    ZStack {
+                                        Circle()
+                                            .fill(goal.isCompleted ? GhostTheme.purpleSoft : Color.clear)
+                                            .frame(width: 24, height: 24)
+                                        Circle()
+                                            .strokeBorder(GhostTheme.purpleSoft, lineWidth: 1.8)
+                                            .frame(width: 24, height: 24)
+                                        if goal.isCompleted {
+                                            Image(systemName: "checkmark")
+                                                .font(.caption.weight(.bold))
+                                                .foregroundStyle(GhostTheme.ink)
+                                        }
+                                    }
+                                    Text(goal.title)
+                                        .font(.body)
+                                        .foregroundStyle(.white)
+                                        .lineLimit(1)
                                     Spacer()
                                 }
                             }
@@ -203,6 +250,8 @@ struct MorningCoachScreen: View {
         guard !text.isEmpty else { return }
         draft = ""
         focused = false
+        modelContext.insert(MorningGoalRecord(title: text))
+        try? modelContext.save()
         Task { await store.send(text) }
     }
 }

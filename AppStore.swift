@@ -158,8 +158,20 @@ final class GhostDevice: NSObject, AVSpeechSynthesizerDelegate {
             kSecAttrService as String: "dev.ghostchat.readybyeight", kSecAttrAccount as String: "coach-api",
             kSecReturnData as String: true, kSecMatchLimit as String: kSecMatchLimitOne]
         var result: CFTypeRef?
-        guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess, let data = result as? Data else { return "" }
-        return String(data: data, encoding: .utf8) ?? ""
+        if SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
+           let data = result as? Data,
+           let stored = String(data: data, encoding: .utf8), !stored.isEmpty {
+            return stored
+        }
+        if let envKey = ProcessInfo.processInfo.environment["GHOST_AI_API_KEY"], !envKey.isEmpty {
+            return envKey
+        }
+        if let url = Bundle.main.url(forResource: "Secrets", withExtension: "plist"),
+           let dict = NSDictionary(contentsOf: url) as? [String: Any],
+           let plistKey = dict["GHOST_AI_API_KEY"] as? String, !plistKey.isEmpty {
+            return plistKey
+        }
+        return ""
     }
     func reply(messages: [CoachMessage]) async throws -> String {
         guard let url = URL(string: endpoint), url.scheme == "https", url.host != nil,
