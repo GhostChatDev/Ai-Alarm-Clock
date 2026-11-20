@@ -87,9 +87,12 @@ struct HomeView: View {
                             .font(.headline.weight(.semibold))
                         Spacer()
                         Toggle("Alarm enabled", isOn: Binding(
-                            get: { store.nextAlarm?.enabled ?? false },
+                            get: { store.state.alarms.contains { $0.enabled } },
                             set: { enabled in
-                                if let alarm = store.nextAlarm { Task { await store.setEnabled(alarm, enabled) } }
+                                if var alarm = store.state.alarms.first(where: \.enabled) ?? store.state.alarms.first {
+                                    alarm.enabled = enabled
+                                    Task { await store.save(alarm) }
+                                }
                             }
                         ))
                         .labelsHidden().tint(GhostTheme.purple)
