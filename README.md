@@ -29,8 +29,7 @@ The interface uses SwiftUI, `@Observable` stores, and SwiftData morning goals.
   They do not guarantee bypassing Silent Mode or Focus. Keep a Clock backup alarm.
 - Imported alarm tones must be no longer than 29 seconds. Choose an audio file
   accessible through Files; this is not an Apple Music/DRM library integration.
-  Changing the tone does not automatically reschedule existing reminders: save
-  or re-enable the reminder after importing a new tone.
+  Check the app's Settings screen for any errors when changing the tone.
 - Built-in audio is generated PCM loops named **Moonlight piano**, **Gentle rain**,
   **Ocean breathing**, and **Cosmic drift**; these are not recorded music tracks.
 - Weather cards contain **demo forecasts**, not live weather or location data.
@@ -62,14 +61,12 @@ Always regenerate the project after pulling source/configuration changes.
 `ReadyByEight/AppStore.swift` includes both `AppStore` and `GhostDevice` so the
 views can resolve the device services. Keep it with `AlarmModels.swift`,
 `RootView.swift`, `ReadyByEightApp.swift`, `CoachView.swift`, and root
-`GhostTheme.swift` in the app target. **Do not also add root `AppStore.swift`**:
-it is an excluded legacy copy with overlapping types and the same filename.
-Do not copy it to `DeviceServices.swift`. The XcodeGen spec selects the right files.
+`GhostTheme.swift` in the app target. The XcodeGen spec selects these files.
 
 ## Private API configuration
 
 Prefer entering keys in Settings (Keychain). Development fallback reads
-`GHOST_AI_API_KEY` from the process environment or `GHOST_AI_API_KEY` / `API_KEY`
+`GHOST_AI_API_KEY` from the process environment or `GHOST_AI_API_KEY`
 from `Secrets.plist` in the app bundle. The plist is optional and not bundled by
 this project spec. `.gitignore` excludes secret files; it cannot protect a key
 that was already committed. Never distribute a bundled production API secret.
@@ -78,9 +75,9 @@ No microphone or location permissions are requested by the current app.
 ## Verification and release rule
 
 `.github/workflows/ios.yml` runs SwiftPM logic tests and builds the shared scheme
-on a macOS runner for a generic iOS Simulator, without code signing. A final
-`[ui-test]` commit also runs simulator interaction and relaunch tests.
-No iOS build is attempted in the Linux sandbox.
+on a macOS runner for a generic iOS Simulator, without code signing. The current
+workflow does not run simulator interaction or relaunch tests. No iOS build is
+attempted in the Linux sandbox.
 
 **Done requires all four checks, with evidence:**
 
