@@ -224,4 +224,10 @@ extension View {
     func ghostCard(glow: Bool = false) -> some View {
         modifier(GhostTheme.GhostCard(glow: glow))
     }
+
+    func ghostScreen(animated: Bool = false) -> some View {
+        background(GhostTheme.GhostAurora(animated: animated))
+            .foregroundStyle(GhostTheme.textPrimary)
+            .tint(GhostTheme.purple)
+    }
 }
