@@ -1,5 +1,7 @@
 # Ghost Mascot — native iPhone & iPad app
 
+Native SwiftUI for iOS 17+, with synchronized live-wallpaper animation and Nightstand Saving Mode.
+
 **Made by Agent.Ghost Coded**
 **Total Cost 10$**
 **ghostchat.tech via Ghost Code**

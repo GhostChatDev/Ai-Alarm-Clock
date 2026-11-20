@@ -18,7 +18,7 @@ targets:
         INFOPLIST_KEY_CFBundleDisplayName: "Ghost Mascot"
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
-        SWIFT_VERSION: "5.0"
+        SWIFT_VERSION: "5.10"
         TARGETED_DEVICE_FAMILY: "1,2"
 schemes:
   GhostMascot:

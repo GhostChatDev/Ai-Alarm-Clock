@@ -4,6 +4,7 @@ struct RootView: View {
     @Environment(AppStore.self) private var store
     @State private var tab = 0
 
+    // Ghost Mascot's four native tabs share the same animated design system.
     var body: some View {
         Group {
             switch tab {

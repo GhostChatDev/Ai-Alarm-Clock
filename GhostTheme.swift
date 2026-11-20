@@ -27,13 +27,43 @@ enum GhostTheme {
     static var accentGradient: LinearGradient {
         LinearGradient(colors: [purpleSoft, purple, teal], startPoint: .topLeading, endPoint: .bottomTrailing)
     }
+    static var weatherGradient: LinearGradient {
+        LinearGradient(colors: [Color(red: 0.34, green: 0.24, blue: 0.62), Color(red: 0.18, green: 0.13, blue: 0.36)],
+                       startPoint: .topLeading, endPoint: .bottomTrailing)
+    }
+    enum Mood {
+        case idle, speaking, awake, sleeping
+    }
     struct GhostAurora: View {
         var animated = false
+        @Environment(\.accessibilityReduceMotion) private var reduceMotion
         var body: some View {
-            ZStack {
-                GhostTheme.inkDeep
-                RadialGradient(colors: [GhostTheme.purple.opacity(0.18), .clear],
-                    center: .topTrailing, startRadius: 10, endRadius: 500)
+            TimelineView(.animation(minimumInterval: 0.08, paused: !animated || reduceMotion)) { context in
+                let t = (!animated || reduceMotion) ? 0 : context.date.timeIntervalSinceReferenceDate
+                ZStack {
+                    GhostTheme.inkDeep
+                    RadialGradient(
+                        colors: [GhostTheme.purple.opacity(0.24 + 0.06 * sin(t * 0.9)), .clear],
+                        center: UnitPoint(x: 0.78 + 0.12 * cos(t * 0.5), y: 0.16 + 0.08 * sin(t * 0.6)),
+                        startRadius: 10, endRadius: 520
+                    )
+                    RadialGradient(
+                        colors: [GhostTheme.teal.opacity(0.20 + 0.05 * cos(t * 0.7)), .clear],
+                        center: UnitPoint(x: 0.22 + 0.10 * sin(t * 0.4), y: 0.78 + 0.08 * cos(t * 0.5)),
+                        startRadius: 20, endRadius: 460
+                    )
+                    ForEach(0..<6, id: \.self) { i in
+                        let phase = Double(i) * 1.15
+                        Circle()
+                            .fill(GhostTheme.purpleSoft.opacity(0.18 + 0.12 * sin(t * 1.2 + phase)))
+                            .frame(width: CGFloat(6 + (i % 3) * 4), height: CGFloat(6 + (i % 3) * 4))
+                            .blur(radius: 1.5)
+                            .offset(
+                                x: CGFloat(cos(t * 0.45 + phase) * 140),
+                                y: CGFloat(sin(t * 0.55 + phase * 1.3) * 240)
+                            )
+                    }
+                }
             }.ignoresSafeArea().allowsHitTesting(false)
         }
     }
@@ -135,15 +165,18 @@ enum GhostTheme {
         }
     }
     struct GhostMascot: View {
+        var mood: Mood = .idle
         var isSpeaking = false
         var size: CGFloat = 100
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
         var body: some View {
-            TimelineView(.animation(minimumInterval: 0.12, paused: reduceMotion)) { context in
+            TimelineView(.animation(minimumInterval: 0.08, paused: reduceMotion)) { context in
                 let t = reduceMotion ? 0 : context.date.timeIntervalSinceReferenceDate
-                let blink = !reduceMotion && t.truncatingRemainder(dividingBy: 4.2) < 0.16
+                let sleeping = (mood == .sleeping)
+                let speaking = isSpeaking || (mood == .speaking)
+                let blink = !reduceMotion && (sleeping || t.truncatingRemainder(dividingBy: 4.2) < 0.16)
                 ZStack {
-                    Ellipse().fill(GhostTheme.purple.opacity(0.28)).blur(radius: size * 0.15)
+                    Ellipse().fill(GhostTheme.purple.opacity(0.26 + 0.08 * sin(t * 1.4))).blur(radius: size * 0.15)
                         .frame(width: size, height: size * 0.7)
                     GhostShape().fill(.linearGradient(colors: [.white, Color(red: 0.81, green: 0.79, blue: 0.97)],
                         startPoint: .topLeading, endPoint: .bottomTrailing))
@@ -161,12 +194,12 @@ enum GhostTheme {
                         }
                     }.offset(y: size * 0.035)
                     Capsule().fill(GhostTheme.inkDeep.opacity(0.8))
-                        .frame(width: size * 0.12, height: isSpeaking ? size * (0.04 + abs(sin(t * 13)) * 0.08) : size * 0.035)
+                        .frame(width: size * 0.12, height: speaking ? size * (0.04 + abs(sin(t * 13)) * 0.08) : size * 0.035)
                         .offset(y: size * 0.10)
                 }.frame(width: size * 1.15, height: size * 1.1)
-                    .offset(y: CGFloat(sin(t * 1.4)) * (reduceMotion ? 0 : 3))
+                    .offset(y: CGFloat(sin(t * 1.4)) * (reduceMotion ? 0 : 4))
             }.frame(width: size * 1.15, height: size * 1.1)
-                .accessibilityLabel(isSpeaking ? "Ghost speaking" : "Your friendly ghost coach")
+                .accessibilityLabel(isSpeaking ? "Ghost speaking" : "Ghost Mascot")
         }
     }
     struct GhostShape: Shape {

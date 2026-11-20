@@ -1,8 +1,12 @@
 name: iOS Simulator Build
 on:
   push:
-  pull_request:
   workflow_dispatch:
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: macos-15
