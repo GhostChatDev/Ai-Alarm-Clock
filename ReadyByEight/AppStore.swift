@@ -422,7 +422,7 @@ final class AppStore {
             self.error = "Couldn’t save your message. \(error.localizedDescription)"
             return
         }
-        let nextFormatted = nextAlarm?.formatted(date: .abbreviated, time: .shortened)
+        let nextFormatted = nextAlarm?.date.formatted(date: .abbreviated, time: .shortened)
         var response = OfflineCoach.reply(to: text, nextAlarm: nextFormatted)
         if device.remoteEnabled {
             do { response = try await device.reply(messages: state.messages) }
