@@ -55,7 +55,7 @@ struct MorningGhostScreen: View {
         VStack(spacing: 0) {
             HStack(alignment: .center, spacing: 14) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Your Morning Coach")
+                    Text("Your Morning Ghost")
                         .font(.system(size: 28, weight: .bold, design: .rounded))
                         .foregroundStyle(GhostTheme.textPrimary)
                     Text("Small steps. A stronger start.")
