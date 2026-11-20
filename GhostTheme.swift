@@ -169,19 +169,33 @@ enum GhostTheme {
         var isSpeaking = false
         var size: CGFloat = 100
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
+        @State private var tapProgress: Double = 0
         var body: some View {
-            TimelineView(.animation(minimumInterval: 0.08, paused: reduceMotion)) { context in
+            TimelineView(.animation(minimumInterval: 0.05, paused: reduceMotion)) { context in
                 let t = reduceMotion ? 0 : context.date.timeIntervalSinceReferenceDate
                 let sleeping = (mood == .sleeping)
                 let speaking = isSpeaking || (mood == .speaking)
                 let blink = !reduceMotion && (sleeping || t.truncatingRemainder(dividingBy: 4.2) < 0.16)
+                let burst = reduceMotion ? 0 : sin(tapProgress * .pi)
                 ZStack {
+                    ForEach(0..<6, id: \.self) { i in
+                        Image(systemName: i.isMultiple(of: 2) ? "sparkle" : "heart.fill")
+                            .font(.system(size: size * 0.09))
+                            .foregroundStyle(i.isMultiple(of: 2) ? GhostTheme.yellow : GhostTheme.pink)
+                            .offset(x: CGFloat(cos(Double(i) * .pi / 3) * burst) * size * 0.62,
+                                    y: CGFloat(sin(Double(i) * .pi / 3) * burst) * size * 0.55)
+                            .opacity(burst)
+                    }
                     Ellipse().fill(GhostTheme.purple.opacity(0.26 + 0.08 * sin(t * 1.4))).blur(radius: size * 0.15)
                         .frame(width: size, height: size * 0.7)
                     GhostShape().fill(.linearGradient(colors: [.white, Color(red: 0.81, green: 0.79, blue: 0.97)],
                         startPoint: .topLeading, endPoint: .bottomTrailing))
                         .overlay(GhostShape().stroke(.white.opacity(0.8), lineWidth: 1))
                         .frame(width: size * 0.78, height: size * 0.87)
+                    Capsule().fill(GhostTheme.ghostWhite)
+                        .frame(width: size * 0.28, height: size * 0.10)
+                        .rotationEffect(.degrees(sleeping ? -8 : -22 + sin(t * 5) * 18 + burst * 35), anchor: .leading)
+                        .offset(x: size * 0.31, y: -size * 0.12)
                     HStack(spacing: size * 0.18) {
                         ForEach(0..<2, id: \.self) { _ in
                             Capsule().fill(GhostTheme.inkDeep)
@@ -197,8 +211,15 @@ enum GhostTheme {
                         .frame(width: size * 0.12, height: speaking ? size * (0.04 + abs(sin(t * 13)) * 0.08) : size * 0.035)
                         .offset(y: size * 0.10)
                 }.frame(width: size * 1.15, height: size * 1.1)
-                    .offset(y: CGFloat(sin(t * 1.4)) * (reduceMotion ? 0 : 4))
+                    .rotationEffect(.degrees(reduceMotion ? 0 : sin(t * 2.4) * 5 + burst * 12))
+                    .offset(y: CGFloat(sin(t * 1.4)) * (reduceMotion ? 0 : 4) - CGFloat(burst) * 10)
             }.frame(width: size * 1.15, height: size * 1.1)
+                .contentShape(Rectangle())
+                .simultaneousGesture(TapGesture().onEnded {
+                    guard !reduceMotion else { return }
+                    tapProgress = 0
+                    withAnimation(.easeOut(duration: 0.8)) { tapProgress = 1 }
+                })
                 .accessibilityLabel(isSpeaking ? "Ghost speaking" : "Ghost Mascot")
         }
     }
