@@ -95,8 +95,10 @@ struct NightstandModeView: View {
         VStack(spacing: 2) {
             TimelineView(.periodic(from: .now, by: 1)) { context in
                 Text(context.date, format: .dateTime.hour().minute())
-                    .font(.system(size: 96, weight: .thin, design: .rounded))
+                    .font(.system(size: 104, weight: .thin, design: .rounded))
                     .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
                     .foregroundStyle(GhostTheme.purpleSoft)
                     .shadow(color: GhostTheme.purple.opacity(0.55), radius: 26)
             }
@@ -118,7 +120,8 @@ struct NightstandModeView: View {
     private var ghostBlock: some View {
         VStack(spacing: 6) {
             ZStack(alignment: .topTrailing) {
-                GhostTheme.GhostMascot(mood: .sleeping, size: 150)
+                GhostTheme.GhostMascot(mood: .sleeping, size: 180)
+                    .accessibilityLabel("A sleeping ghost with floating dream letters")
                 SleepZzz()
                     .offset(x: 6, y: -14)
             }

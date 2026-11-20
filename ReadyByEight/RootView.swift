@@ -60,24 +60,18 @@ struct HomeView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 22) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Good evening")
-                            .font(.subheadline.weight(.medium))
-                            .foregroundStyle(GhostTheme.textSecondary)
-                        Text("Ghost Mascot")
-                            .font(.system(size: 30, weight: .bold, design: .rounded))
-                            .foregroundStyle(GhostTheme.textPrimary)
-                    }
-                    Spacer()
-                    Button {
-                        try? store.device.say("Good evening! Sweet dreams.")
-                    } label: {
-                        GhostTheme.GhostMascot(isSpeaking: store.device.speaking, size: 48)
-                    }
-                    .buttonStyle(.plain)
+                GhostCompanionHero {
+                    try? store.device.say("Hey, you. Sweet dreams. Your ghost is right here.")
                 }
                 .padding(.top, 20)
+
+                HStack {
+                    Text("Sleep & wake")
+                        .font(.system(size: 22, weight: .bold, design: .rounded))
+                    Spacer()
+                    Text("Your little night ritual")
+                        .font(.caption).foregroundStyle(GhostTheme.textSecondary)
+                }
 
                 VStack(alignment: .leading, spacing: 18) {
                     HStack {

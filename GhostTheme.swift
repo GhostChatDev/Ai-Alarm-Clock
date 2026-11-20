@@ -43,19 +43,19 @@ enum GhostTheme {
                 ZStack {
                     GhostTheme.inkDeep
                     RadialGradient(
-                        colors: [GhostTheme.purple.opacity(0.24 + 0.06 * sin(t * 0.9)), .clear],
+                        colors: [GhostTheme.purple.opacity(0.42 + 0.12 * sin(t * 0.9)), .clear],
                         center: UnitPoint(x: 0.78 + 0.12 * cos(t * 0.5), y: 0.16 + 0.08 * sin(t * 0.6)),
                         startRadius: 10, endRadius: 520
                     )
                     RadialGradient(
-                        colors: [GhostTheme.teal.opacity(0.20 + 0.05 * cos(t * 0.7)), .clear],
+                        colors: [GhostTheme.pink.opacity(0.16 + 0.08 * cos(t * 0.7)), GhostTheme.teal.opacity(0.22), .clear],
                         center: UnitPoint(x: 0.22 + 0.10 * sin(t * 0.4), y: 0.78 + 0.08 * cos(t * 0.5)),
                         startRadius: 20, endRadius: 460
                     )
-                    ForEach(0..<6, id: \.self) { i in
-                        let phase = Double(i) * 1.15
+                    ForEach(0..<14, id: \.self) { i in
+                        let phase = Double(i) * 0.83
                         Circle()
-                            .fill(GhostTheme.purpleSoft.opacity(0.18 + 0.12 * sin(t * 1.2 + phase)))
+                            .fill(GhostTheme.purpleSoft.opacity(0.35 + 0.3 * sin(t * 1.2 + phase)))
                             .frame(width: CGFloat(6 + (i % 3) * 4), height: CGFloat(6 + (i % 3) * 4))
                             .blur(radius: 1.5)
                             .offset(x: CGFloat(cos(t * 0.45 + phase) * 140),
