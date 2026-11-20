@@ -1,10 +1,10 @@
-name: ReadyByEight
+name: GhostMascot
 options:
-  bundleIdPrefix: com.readybyeight
+  bundleIdPrefix: dev.ghostchat
   deploymentTarget:
     iOS: "17.0"
 targets:
-  ReadyByEight:
+  GhostMascot:
     type: application
     platform: iOS
     sources:
@@ -12,15 +12,16 @@ targets:
       - path: GhostTheme.swift
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: dev.ghostchat.ReadyByEight
+        PRODUCT_BUNDLE_IDENTIFIER: dev.ghostchat.ghostmascot
+        PRODUCT_NAME: GhostMascot
         GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_KEY_CFBundleDisplayName: "Ready by Eight"
+        INFOPLIST_KEY_CFBundleDisplayName: "Ghost Mascot"
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
         SWIFT_VERSION: "5.0"
         TARGETED_DEVICE_FAMILY: "1,2"
 schemes:
-  ReadyByEight:
+  GhostMascot:
     build:
       targets:
-        ReadyByEight: all
+        GhostMascot: all

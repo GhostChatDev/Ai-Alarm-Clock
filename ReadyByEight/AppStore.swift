@@ -229,6 +229,8 @@ final class AppStore {
 
     var nextAlarm: Date? { state.alarms.compactMap { $0.nextOccurrence() }.min() }
     var challengeCompleted: Bool { state.completedDay == SavedState.dayKey() }
+    static var appIconName: String { "Ghost Mascot" }
+
     var coachName: String {
         if device.remoteEnabled { return "Online AI · Sends chat to your provider" }
         #if canImport(FoundationModels)
@@ -274,7 +276,7 @@ final class AppStore {
                 let granted = try await center.requestAuthorization(options: [.alert, .sound])
                 await refresh()
                 guard granted else {
-                    error = "Notifications are off. Enable them in iPhone Settings → Notifications → Ready by Eight."
+                    error = "Notifications are off. Enable them in iPhone Settings → Notifications → Ghost Mascot."
                     return false
                 }
                 try await schedule(alarm)
