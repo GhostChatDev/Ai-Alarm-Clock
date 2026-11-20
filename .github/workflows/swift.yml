@@ -29,7 +29,6 @@ jobs:
 
       - name: Write XcodeGen spec
         run: |
-          cp AppStore.swift GhostDevice.generated.swift
           cat > project.yml <<'YAML'
           name: ReadyByEight
           options:
@@ -44,7 +43,6 @@ jobs:
               sources:
                 - path: ReadyByEight
                 - path: GhostTheme.swift
-                - path: GhostDevice.generated.swift
               settings:
                 base:
                   PRODUCT_BUNDLE_IDENTIFIER: dev.ghostchat.ReadyByEight
