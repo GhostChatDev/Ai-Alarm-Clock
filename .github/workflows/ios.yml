@@ -1,0 +1,37 @@
+name: iOS Simulator Build
+on:
+  push:
+  workflow_dispatch:
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  logic:
+    name: Logic tests
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Swift logic tests
+        run: swift test --disable-sandbox
+
+  build:
+    name: iOS simulator build
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Show Xcode
+        run: xcodebuild -version
+      - name: Generate the Xcode project
+        run: |
+          brew install xcodegen
+          xcodegen generate --spec project.yml
+      - name: Build for iOS Simulator
+        run: |
+          set -o pipefail
+          xcodebuild -project ReadyByEight.xcodeproj -scheme ReadyByEight \
+            -destination 'generic/platform=iOS Simulator' -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build 2>&1 | tee build.log
