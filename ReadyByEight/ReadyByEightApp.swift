@@ -37,7 +37,7 @@ struct ReadyByEightApp: App {
     }
 }
 
-struct MorningCoachScreen: View {
+struct MorningGhostScreen: View {
     @Environment(AppStore.self) private var store
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \MorningGoalRecord.createdAt, order: .reverse) private var savedGoals: [MorningGoalRecord]

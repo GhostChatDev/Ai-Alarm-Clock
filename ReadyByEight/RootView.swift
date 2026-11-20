@@ -85,7 +85,13 @@ struct HomeView: View {
                         Text("Wake-Up Alarm")
                             .font(.headline.weight(.semibold))
                         Spacer()
-                        GhostTheme.GhostAlarmToggle(isOn: store.nextAlarm?.enabled ?? false)
+                        Toggle("Alarm enabled", isOn: Binding(
+                            get: { store.nextAlarm?.enabled ?? false },
+                            set: { enabled in
+                                if let alarm = store.nextAlarm { Task { await store.setEnabled(alarm, enabled) } }
+                            }
+                        ))
+                        .labelsHidden().tint(GhostTheme.purple)
                     }
                     if let alarm = store.nextAlarm {
                         HStack(alignment: .firstTextBaseline) {

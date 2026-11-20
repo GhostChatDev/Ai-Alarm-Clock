@@ -31,7 +31,7 @@ jobs:
       - name: Build for iOS Simulator
         run: |
           set -o pipefail
-          xcodebuild -project ReadyByEight.xcodeproj -scheme ReadyByEight \
+          xcodebuild -project GhostMascot.xcodeproj -scheme GhostMascot \
             -destination 'generic/platform=iOS Simulator' -configuration Debug \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
             build 2>&1 | tee build.log
