@@ -12,12 +12,13 @@ targets:
       - path: GhostTheme.swift
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.readybyeight.app
+        PRODUCT_BUNDLE_IDENTIFIER: dev.ghostchat.ReadyByEight
         GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: "Ready by Eight"
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
-        SWIFT_VERSION: "6.0"
-        CODE_SIGNING_ALLOWED: NO
+        SWIFT_VERSION: "5.0"
+        TARGETED_DEVICE_FAMILY: "1,2"
 schemes:
   ReadyByEight:
     build:

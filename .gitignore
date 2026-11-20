@@ -1,0 +1,18 @@
+# Xcode & SwiftPM
+.DS_Store
+.build/
+.swiftpm/
+*.xcodeproj/
+*.xcworkspace/
+xcuserdata/
+DerivedData/
+build.log
+
+# Private AI API Keys & Secrets (never commit!)
+.env
+.env.*
+Secrets.plist
+Secrets.xcconfig
+*Secrets*.plist
+*Secrets*.json
+api_keys.json
