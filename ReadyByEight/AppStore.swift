@@ -234,6 +234,7 @@ final class AppStore {
             .min { $0.1 < $1.1 }
     }
     var challengeCompleted: Bool { state.completedDay == SavedState.dayKey() }
+    var coachName: String { "Ghost Mascot" }
     static var appIconName: String { "Ghost Mascot" }
 
     func refresh() async {
