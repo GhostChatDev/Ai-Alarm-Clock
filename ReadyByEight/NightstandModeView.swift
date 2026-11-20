@@ -101,13 +101,12 @@ struct NightstandModeView: View {
                     .shadow(color: GhostTheme.purple.opacity(0.55), radius: 26)
             }
             if let next = store.nextAlarm {
-                Label(next.date, format: .dateTime.weekday(.abbreviated).hour().minute())
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.white.opacity(0.55))
-            }
-            if store.nextAlarm != nil {
-                Image(systemName: "alarm.fill")
-                    .foregroundStyle(.white.opacity(0.55))
+                HStack(spacing: 6) {
+                    Image(systemName: "alarm.fill")
+                    Text(next.date, format: .dateTime.weekday(.abbreviated).hour().minute())
+                }
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(.white.opacity(0.55))
             }
             Text(Date.now, format: .dateTime.weekday(.wide).month().day())
                 .font(.caption)
