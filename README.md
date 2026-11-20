@@ -1,47 +1,97 @@
 # Ghost Mascot — native iPhone & iPad app
 
-Native SwiftUI for iOS 17+, with synchronized live-wallpaper animation and Nightstand Saving Mode.
+A living ghost companion for your nights. Native SwiftUI for **iOS 17+**, with a
+synchronized live wallpaper, wake-up reminders, sleep sounds and a cute
+Nightstand Saving Mode.
 
 **Made by Agent.Ghost Coded**
 **Total Cost 10$**
 **ghostchat.tech via Ghost Code**
 
-Ghost Mascot is a living, breathing ghost companion with notification-based
-wake-up reminders, generated sleep audio, on-device text-to-speech, and a
-**Nightstand / Lock-Screen Saving Mode** — a cute OLED bedside clock with a
-sleeping ghost, floating dream bubbles, and drifting "z Z z". Requires **iOS 17+**.
-The interface uses SwiftUI, `@Observable` stores, and SwiftData morning goals.
+## The design
 
-## What is implemented
+Four tabs at the bottom: **Home · Wake · Nightstand · Settings**. Every screen
+sits on the same dark lavender live wallpaper.
 
-- **Live wallpaper:** a single shared clock (`TimelineView`) drives the aurora
-  ribbons, twinkling stars, floating spirit orbs, mascot breathing/sway, and the
-  breathing glow on cards — everything moves in sync.
-- **Home:** create/edit alarms, toggle reminders, open the wake screen, play/stop
-  four generated audio loops, select a 15/30/60-minute sleep timer, and a hero
-  card with a synced pulse.
-- **Wake:** five-minute notification snooze and an "I'm Awake" action that
-  completes the daily challenge.
-- **Nightstand (Lock-Screen Saving Mode):** dim OLED clock, sleeping ghost,
-  floating dream bubbles, a keep-awake toggle (`isIdleTimerDisabled`), and
-  tap-to-dim. iOS cannot draw over the real Lock Screen (no public API), so this
-  is an in-app always-on bedside mode: enable Keep Awake and leave it open.
-- **Settings:** import sleep audio and a notification tone from Files, adjust
-  playback volume, select an installed speech voice, and configure a remote API.
-- **Storage:** alarms, chat and daily challenge state use a JSON file; checklist
-  and preferences use UserDefaults; goals use SwiftData; imported audio remains
-  in the app sandbox; API keys stay in the Keychain.
+### Live wallpaper (`GhostTheme.GhostAurora`)
+- One `TimelineView` clock moves everything together: a lavender glow drifting
+  in the top corner, a pink/teal glow drifting in the bottom corner, and 14
+  twinkling sparkles floating across the screen.
+- Turns still when iOS **Reduce Motion** is on.
+
+### Home (`HomeView` + `GhostCompanionHero`)
+- **Ghost hero first:** a big floating ghost (size 170) with a breathing glow,
+  a tilted orbit ring and 9 stars/sparkles circling it.
+  Caption: "YOUR LITTLE NIGHT COMPANION" / "A little magic. Just for you."
+- **Say hello** button: the ghost wakes up, grows a little, the text changes to
+  "Hey, you. I'm right here." and it speaks with on-device text-to-speech.
+- Tap the ghost itself for a sparkle burst. It floats, sways, waves and blinks.
+- Below the ghost, under **Sleep & wake**:
+  - **Wake-Up Alarm** card: on/off switch, big next-alarm time, label, repeat
+    pill, **Set Alarm** (edit) and **Turn Off / Turn On**, or
+    **Create your first alarm** when there is none.
+  - **Nightstand Saving Mode** card (opens the Nightstand tab).
+  - **Tonight** weather card (sample text, no live weather service).
+  - **Sleep Music**: 15 / 30 / 60 min timer and four generated loops with
+    play / pause.
+
+### Wake (`WakeTabView`)
+- Big live clock and date, **I'm Awake** (stops music, cancels snooze, says
+  good morning) and **Snooze · 5 min** (schedules a notification and shows a
+  banner).
+
+### Nightstand Saving Mode (`NightstandModeView`)
+- OLED-black bedside screen with a dimmed live wallpaper, a large glowing
+  clock, the next alarm and the date.
+- A sleeping ghost (size 180) with drifting "z z z" and floating dream bubbles.
+- Tap anywhere to dim / brighten; controls hide again after 4 seconds.
+- **Keep Awake** switch (`isIdleTimerDisabled`) and a dream-bubbles switch.
+- **iOS limit:** apps cannot draw on the real Lock Screen (no public API). This
+  is an in-app always-on mode: turn on Keep Awake and leave the app open,
+  ideally charging in landscape.
+
+### Settings (`SettingsTabView`)
+- Import sleep audio and a notification tone from Files, sleep volume, pick an
+  installed speech voice and test it, optional remote AI key, and the credits.
+
+## Storage
+- Alarms and daily state: JSON file in Application Support.
+- Checklist and preferences: UserDefaults / `@AppStorage`.
+- Goals: SwiftData (`MorningGoalRecord`).
+- Imported audio: app sandbox. API key: iOS Keychain (or `GHOST_AI_API_KEY`
+  / gitignored `Secrets.plist`). No key is ever in source.
+
+## Files
+- `GhostTheme.swift` — colors, live wallpaper, cards, buttons, `GhostMascot`.
+- `ReadyByEight/GhostCompanionHero.swift` — Home ghost hero.
+- `ReadyByEight/RootView.swift` — tab bar, Home, Wake.
+- `ReadyByEight/NightstandModeView.swift` — Nightstand Saving Mode.
+- `ReadyByEight/ReadyByEightApp.swift` — app entry, Settings, alarm editor.
+- `ReadyByEight/AppStore.swift` — `@Observable` store and `GhostDevice`
+  (audio, speech, notifications).
+- `ReadyByEight/AlarmModels.swift` — alarm, repeat and saved-state logic.
+- `project.yml` — XcodeGen project, shared `ReadyByEight` scheme, iOS 17.
+- `.github/workflows/ios.yml` — logic tests + iOS Simulator build.
+
+**Swift Playgrounds:** copy all the Swift files above into your app,
+including `GhostCompanionHero.swift`, or you get "Cannot find ... in scope".
+
+## Build
+```sh
+brew install xcodegen
+xcodegen generate
+open ReadyByEight.xcodeproj
+```
+Pick an iPhone or iPad simulator and press Run (⌘R).
 
 ## Four release checks
-
 1. **Build passes:** GitHub Actions `iOS Simulator Build` runs the SwiftPM logic
    tests and an XcodeGen `generic/platform=iOS Simulator` build.
-2. **Buttons work:** every control is wired to the `@Observable` store or a local
-   state action; interactive taps are verified in the Simulator / Playgrounds.
+2. **Buttons work:** every control is wired to the store or local state; taps
+   are checked by hand in the Simulator / Playgrounds (no automated UI test yet).
 3. **Data survives a refresh:** alarms, checklist, goals, imported audio and
-   preferences persist across relaunch (JSON + UserDefaults + SwiftData + Keychain).
+   preferences persist across relaunch.
 4. **README isn't lying:** this file is updated in the same change as the code.
 
 ## Credits
-
 Made by Agent.Ghost Coded · Total Cost 10$ · ghostchat.tech via Ghost Code
