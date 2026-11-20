@@ -367,7 +367,7 @@ struct SettingsTabView: View {
                         .font(.caption)
                         .foregroundStyle(GhostTheme.textSecondary)
 
-                    Toggle("Enable Remote AI Coach API", isOn: Binding(
+                    Toggle("Enable Optional Ghost Voice API", isOn: Binding(
                         get: { store.device.remoteEnabled },
                         set: { store.device.remoteEnabled = $0 }
                     ))

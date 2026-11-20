@@ -227,19 +227,14 @@ final class AppStore {
         } catch { self.error = "Couldn’t load your saved data. No data has been overwritten. \(error.localizedDescription)" }
     }
 
-    var nextAlarm: Date? { state.alarms.compactMap { $0.nextOccurrence() }.min() }
+    var nextAlarm: (alarm: WakeAlarm, date: Date)? {
+        state.alarms
+            .filter(\.enabled)
+            .compactMap { alarm in alarm.nextOccurrence().map { (alarm, $0) } }
+            .min { $0.1 < $1.1 }
+    }
     var challengeCompleted: Bool { state.completedDay == SavedState.dayKey() }
     static var appIconName: String { "Ghost Mascot" }
-
-    var coachName: String {
-        if device.remoteEnabled { return "Online AI · Sends chat to your provider" }
-        #if canImport(FoundationModels)
-        if #available(iOS 26.0, *), case .available = SystemLanguageModel.default.availability {
-            return "On-device AI · Private"
-        }
-        #endif
-        return "Offline coach · Guided replies, not AI"
-    }
 
     func refresh() async {
         let settings = await withCheckedContinuation { continuation in

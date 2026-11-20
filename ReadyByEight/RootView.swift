@@ -97,13 +97,13 @@ struct HomeView: View {
                         ))
                         .labelsHidden().tint(GhostTheme.purple)
                     }
-                    if let alarm = store.nextAlarm {
+                    if let next = store.nextAlarm {
+                        let alarm = next.0
+                        let nextDate = next.1
                         HStack(alignment: .firstTextBaseline) {
-                            Text(alarm.displayDate, format: .dateTime.hour().minute())
+                            Text(nextDate, format: .dateTime.hour().minute())
                                 .font(.system(size: 58, weight: .bold, design: .rounded))
                                 .contentTransition(.numericText())
-                            Text(alarm.displayDate, format: .dateTime.hour(.twoDigits(amPM: .omitted)).minute())
-                                .hidden()
                         }
                         .foregroundStyle(.white)
                         HStack(spacing: 12) {
@@ -120,14 +120,21 @@ struct HomeView: View {
                         HStack(spacing: 12) {
                             Button("Set Alarm") { editingAlarm = alarm }
                                 .buttonStyle(.borderedProminent).tint(GhostTheme.purple)
-                            if let first = store.state.alarms.first {
-                                Button {
-                                    Task { await store.toggle(first) }
-                                } label: {
-                                    Text(store.nextAlarm?.enabled == true ? "Turn Off" : "Turn On")
-                                }
+                            Button("Turn Off") { Task { await store.toggle(alarm) } }
                                 .buttonStyle(.bordered)
+                        }
+                    } else if let alarm = store.state.alarms.first {
+                        HStack {
+                            VStack(alignment: .leading) {
+                                Text(alarm.displayDate, format: .dateTime.hour().minute())
+                                    .font(.system(size: 52, weight: .bold, design: .rounded))
+                                Text("Alarm off").foregroundStyle(GhostTheme.textSecondary)
                             }
+                            Spacer()
+                            Button("Set Alarm") { editingAlarm = alarm }
+                                .buttonStyle(.borderedProminent).tint(GhostTheme.purple)
+                            Button("Turn On") { Task { await store.toggle(alarm) } }
+                                .buttonStyle(.bordered)
                         }
                     } else {
                         Button { addingAlarm = true } label: {
@@ -287,7 +294,7 @@ struct WakeTabView: View {
                         store.cancelSnooze()
                         if !store.challengeCompleted { store.completeChallenge() }
                         try? store.device.say("Awesome job waking up! Sleepy ghost says hi.")
-                        switchTab(2)
+                        switchTab(0)
                     } label: {
                         Text(store.challengeCompleted ? "I’m Awake ✓" : "I’m Awake")
                             .font(.title3.weight(.semibold))
