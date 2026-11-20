@@ -37,7 +37,7 @@ struct ReadyByEightApp: App {
     }
 }
 
-struct MorningCoachScreen: View {
+struct MorningGhostScreen: View {
     @Environment(AppStore.self) private var store
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \MorningGoalRecord.createdAt, order: .reverse) private var savedGoals: [MorningGoalRecord]
@@ -55,7 +55,7 @@ struct MorningCoachScreen: View {
         VStack(spacing: 0) {
             HStack(alignment: .center, spacing: 14) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Your Morning Coach")
+                    Text("Your Morning Ghost")
                         .font(.system(size: 28, weight: .bold, design: .rounded))
                         .foregroundStyle(GhostTheme.textPrimary)
                     Text("Small steps. A stronger start.")
@@ -367,7 +367,7 @@ struct SettingsTabView: View {
                         .font(.caption)
                         .foregroundStyle(GhostTheme.textSecondary)
 
-                    Toggle("Enable Remote AI Coach API", isOn: Binding(
+                    Toggle("Enable Optional Ghost Voice API", isOn: Binding(
                         get: { store.device.remoteEnabled },
                         set: { store.device.remoteEnabled = $0 }
                     ))

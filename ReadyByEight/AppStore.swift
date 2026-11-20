@@ -227,17 +227,14 @@ final class AppStore {
         } catch { self.error = "Couldn’t load your saved data. No data has been overwritten. \(error.localizedDescription)" }
     }
 
-    var nextAlarm: Date? { state.alarms.compactMap { $0.nextOccurrence() }.min() }
-    var challengeCompleted: Bool { state.completedDay == SavedState.dayKey() }
-    var coachName: String {
-        if device.remoteEnabled { return "Online AI · Sends chat to your provider" }
-        #if canImport(FoundationModels)
-        if #available(iOS 26.0, *), case .available = SystemLanguageModel.default.availability {
-            return "On-device AI · Private"
-        }
-        #endif
-        return "Offline coach · Guided replies, not AI"
+    var nextAlarm: (alarm: WakeAlarm, date: Date)? {
+        state.alarms
+            .filter(\.enabled)
+            .compactMap { alarm in alarm.nextOccurrence().map { (alarm, $0) } }
+            .min { $0.1 < $1.1 }
     }
+    var challengeCompleted: Bool { state.completedDay == SavedState.dayKey() }
+    static var appIconName: String { "Ghost Mascot" }
 
     func refresh() async {
         let settings = await withCheckedContinuation { continuation in
@@ -274,7 +271,7 @@ final class AppStore {
                 let granted = try await center.requestAuthorization(options: [.alert, .sound])
                 await refresh()
                 guard granted else {
-                    error = "Notifications are off. Enable them in iPhone Settings → Notifications → Ready by Eight."
+                    error = "Notifications are off. Enable them in iPhone Settings → Notifications → Ghost Mascot."
                     return false
                 }
                 try await schedule(alarm)
@@ -425,7 +422,7 @@ final class AppStore {
             self.error = "Couldn’t save your message. \(error.localizedDescription)"
             return
         }
-        let nextFormatted = nextAlarm?.formatted(date: .abbreviated, time: .shortened)
+        let nextFormatted = nextAlarm?.date.formatted(date: .abbreviated, time: .shortened)
         var response = OfflineCoach.reply(to: text, nextAlarm: nextFormatted)
         if device.remoteEnabled {
             do { response = try await device.reply(messages: state.messages) }
