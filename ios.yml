@@ -1,0 +1,39 @@
+name: iOS Simulator Build
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Show Xcode
+        run: xcodebuild -version
+      - name: Generate the Xcode project (XcodeGen)
+        if: hashFiles('project.yml') != ''
+        run: |
+          brew install xcodegen
+          if [ -f AppStore.swift ] && [ -f ReadyByEight/AppStore.swift ]; then
+            cp AppStore.swift ReadyByEight/DeviceServices.swift
+          fi
+          xcodegen generate
+      - name: Find project and scheme
+        id: find
+        run: |
+          WS=$(find . -maxdepth 2 -name "*.xcworkspace" -not -path "*/.swiftpm/*" -not -path "*.xcodeproj/*" | head -1)
+          PROJ=$(find . -maxdepth 2 -name "*.xcodeproj" | head -1)
+          if [ -n "$WS" ]; then CONTAINER="-workspace $WS"; LIST=$(xcodebuild -list -json -workspace "$WS"); else CONTAINER="-project $PROJ"; LIST=$(xcodebuild -list -json -project "$PROJ"); fi
+          SCHEME=$(echo "$LIST" | python3 -c "import sys,json; d=json.load(sys.stdin); s=(d.get('workspace') or d.get('project'))['schemes']; print(s[0] if s else '')")
+          echo "container=$CONTAINER" >> "$GITHUB_OUTPUT"
+          echo "scheme=$SCHEME" >> "$GITHUB_OUTPUT"
+          echo "Using $CONTAINER, scheme $SCHEME"
+      - name: Build for iOS Simulator
+        run: |
+          set -o pipefail
+          xcodebuild ${{ steps.find.outputs.container }} -scheme "${{ steps.find.outputs.scheme }}" \
+            -destination 'generic/platform=iOS Simulator' -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build | tee build.log | grep -E "error:|warning: .*deprecated|BUILD (SUCCEEDED|FAILED)|\*\* " || true
+          grep -q "BUILD SUCCEEDED" build.log

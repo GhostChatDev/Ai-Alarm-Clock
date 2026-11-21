@@ -15,6 +15,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Show Xcode
         run: xcodebuild -version
+      - name: Run Foundation logic tests
+        run: swiftc ReadyByEight/AlarmModels.swift Tests/main.swift -o ghost-logic-tests && ./ghost-logic-tests
       - name: Generate the Xcode project (XcodeGen)
         if: hashFiles('project.yml') != ''
         run: |
