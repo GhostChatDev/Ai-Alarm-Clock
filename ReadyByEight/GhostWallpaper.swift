@@ -1,5 +1,17 @@
 import SwiftUI
 
+private struct GhostWallpaperDimmedKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+extension EnvironmentValues {
+    /// Nightstand keeps the same sky, but dims every layer together to save power.
+    var ghostWallpaperDimmed: Bool {
+        get { self[GhostWallpaperDimmedKey.self] }
+        set { self[GhostWallpaperDimmedKey.self] = newValue }
+    }
+}
+
 /// Six animated cosmic wallpaper themes plus an optional wallpaper from a web image URL.
 enum CosmicTheme: String, CaseIterable, Identifiable {
     case lavenderNebula, midnightOcean, auroraDream, sunsetGalaxy, cosmicRose, stardustMint
@@ -45,14 +57,36 @@ struct GhostLiveWallpaper: View {
     @AppStorage("wallpaperTheme") private var themeRaw = CosmicTheme.lavenderNebula.rawValue
     @AppStorage("wallpaperURL") private var urlText = ""
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.ghostWallpaperDimmed) private var dimmed
 
     var body: some View {
         let theme = CosmicTheme.from(themeRaw)
         GeometryReader { geo in
-            TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: reduceMotion)) { context in
+            TimelineView(.animation(minimumInterval: dimmed ? 0.25 : 1.0 / 30.0, paused: reduceMotion)) { context in
                 let t = reduceMotion ? 0 : context.date.timeIntervalSinceReferenceDate
                 ZStack {
                     LinearGradient(colors: [theme.colors[0], theme.colors[1]], startPoint: .top, endPoint: .bottom)
+                    if #available(iOS 18.0, *) {
+                        MeshGradient(
+                            width: 3,
+                            height: 3,
+                            points: [
+                                .init(0, 0), .init(0.5 + Float(sin(t * 0.08)) * 0.2, 0), .init(1, 0),
+                                .init(0, 0.5), .init(0.5 + Float(cos(t * 0.11)) * 0.25, 0.5 + Float(sin(t * 0.09)) * 0.2), .init(1, 0.5),
+                                .init(0, 1), .init(0.5, 1), .init(1, 1)
+                            ],
+                            colors: [
+                                theme.colors[0], theme.colors[1], theme.colors[0],
+                                theme.colors[1].opacity(0.75), theme.colors[2].opacity(0.8), theme.colors[1].opacity(0.7),
+                                theme.colors[0], theme.colors[1], theme.colors[0]
+                            ]
+                        )
+                        .opacity(0.72)
+                    } else {
+                        RadialGradient(colors: [theme.colors[2].opacity(0.55), .clear],
+                                       center: UnitPoint(x: 0.5 + sin(t * 0.1) * 0.25, y: 0.35),
+                                       startRadius: 20, endRadius: geo.size.width * 0.8)
+                    }
                     if let url = WallpaperURL.validated(urlText) {
                         AsyncImage(url: url) { image in
                             image.resizable().scaledToFill().opacity(0.55)
@@ -78,7 +112,30 @@ struct GhostLiveWallpaper: View {
                             .opacity(0.35 + 0.6 * abs(sin(t * 0.9 + Double(i))))
                             .position(x: x * geo.size.width, y: y * geo.size.height)
                     }
+                    // One Canvas pass draws every comet, avoiding a view per particle.
+                    Canvas { context, size in
+                        for i in 0..<4 {
+                            let cycle = (t * 0.075 + Double(i) / 4).truncatingRemainder(dividingBy: 1)
+                            guard cycle < 0.18 else { continue }
+                            let progress = cycle / 0.18
+                            let head = CGPoint(x: (1.05 - progress * 1.3) * size.width,
+                                               y: (0.08 + Double(i) * 0.17 + progress * 0.28) * size.height)
+                            var path = Path()
+                            path.move(to: head)
+                            path.addLine(to: CGPoint(x: head.x + 105, y: head.y - 38))
+                            context.stroke(path, with: .linearGradient(
+                                Gradient(colors: [.white.opacity(0.9), .clear]),
+                                startPoint: head,
+                                endPoint: CGPoint(x: head.x + 105, y: head.y - 38)),
+                                lineWidth: 2)
+                            context.fill(Path(ellipseIn: CGRect(x: head.x - 2, y: head.y - 2, width: 4, height: 4)),
+                                         with: .color(.white.opacity(1 - progress)))
+                        }
+                    }
+                    .allowsHitTesting(false)
                 }
+                .brightness(dimmed ? -0.12 : 0)
+                .opacity(dimmed ? 0.24 : 1)
             }
         }
         .ignoresSafeArea()

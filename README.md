@@ -51,15 +51,15 @@ sits on the same dark lavender live wallpaper.
   ideally charging in landscape.
 
 ### Settings (`SettingsTabView`)
-- Import sleep audio and a notification tone from Files, sleep volume, pick an
-  installed speech voice and test it, optional remote AI key, and the credits.
+- Import sleep audio and a notification tone from Files, adjust sleep volume,
+  pick an installed speech voice and test it, and view the credits. There is no
+  AI Coach screen or AI setup: Ghost Mascot is ghost-only.
 
 ## Storage
 - Alarms and daily state: JSON file in Application Support.
 - Checklist and preferences: UserDefaults / `@AppStorage`.
 - Goals: SwiftData (`MorningGoalRecord`).
-- Imported audio: app sandbox. API key: iOS Keychain (or `GHOST_AI_API_KEY`
-  / gitignored `Secrets.plist`). No key is ever in source.
+- Imported audio: app sandbox. No API key or network service is required.
 
 ## Files
 - `GhostTheme.swift` — colors, live wallpaper, cards, buttons, `GhostMascot`.
@@ -70,7 +70,7 @@ sits on the same dark lavender live wallpaper.
 - `ReadyByEight/AppStore.swift` — `@Observable` store and `GhostDevice`
   (audio, speech, notifications).
 - `ReadyByEight/AlarmModels.swift` — alarm, repeat and saved-state logic.
-- `project.yml` — XcodeGen project, shared `ReadyByEight` scheme, iOS 17.
+- `project.yml` — XcodeGen project, shared `GhostMascot` scheme, iOS 17.
 - `.github/workflows/ios.yml` — logic tests + iOS Simulator build.
 
 **Swift Playgrounds:** copy all the Swift files above into your app,

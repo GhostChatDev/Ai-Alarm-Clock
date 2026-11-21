@@ -19,8 +19,10 @@ final class MorningGoalRecord {
 }
 
 @main
-struct ReadyByEightApp: App {
+struct GhostMascotApp: App {
     @State private var store = AppStore()
+    @State private var sleepEngine = SleepSoundEngine()
+    @State private var sleepTracker = SleepTrackerManager()
     private let delegate = NotificationDelegate()
 
     init() {
@@ -31,6 +33,8 @@ struct ReadyByEightApp: App {
         WindowGroup {
             RootView()
                 .environment(store)
+                .environment(sleepEngine)
+                .environment(sleepTracker)
                 .preferredColorScheme(.dark)
         }
         .modelContainer(for: MorningGoalRecord.self)
@@ -233,7 +237,9 @@ struct MorningGhostScreen: View {
 
     private func suggestionPill(_ title: String) -> some View {
         Button {
-            Task { await store.send(title) }
+            modelContext.insert(MorningGoalRecord(title: title))
+            try? modelContext.save()
+            try? store.device.say("Nice. \(title) is your goal today.")
         } label: {
             Text(title)
                 .font(.subheadline.weight(.medium))
@@ -252,7 +258,7 @@ struct MorningGhostScreen: View {
         focused = false
         modelContext.insert(MorningGoalRecord(title: text))
         try? modelContext.save()
-        Task { await store.send(text) }
+        try? store.device.say("Saved. \(text) is your goal today.")
     }
 }
 
@@ -260,8 +266,7 @@ struct SettingsTabView: View {
     @Environment(AppStore.self) private var store
     @State private var importingTone = false
     @State private var importingMusic = false
-    @State private var keyInput = ""
-    @State private var keySavedBanner = false
+    @State private var keepAwake = UIApplication.shared.isIdleTimerDisabled
 
     var body: some View {
         ScrollView {
@@ -270,7 +275,7 @@ struct SettingsTabView: View {
                     Text("Settings")
                         .font(.system(size: 32, weight: .bold, design: .rounded))
                         .foregroundStyle(GhostTheme.textPrimary)
-                    Text("Device audio, voice, and private AI configuration.")
+                    Text("Device audio, voice, and your personal ghost.")
                         .font(.subheadline)
                         .foregroundStyle(GhostTheme.textSecondary)
                 }
@@ -317,7 +322,7 @@ struct SettingsTabView: View {
                     Label("Device TTS Voice", systemImage: "speaker.wave.3.fill")
                         .font(.headline)
                         .foregroundStyle(GhostTheme.textPrimary)
-                    Toggle("Speak coach replies automatically", isOn: Binding(
+                    Toggle("Allow ghost speech", isOn: Binding(
                         get: { store.device.voiceEnabled },
                         set: { store.device.voiceEnabled = $0 }
                     ))
@@ -338,7 +343,7 @@ struct SettingsTabView: View {
 
                     HStack(spacing: 10) {
                         Button {
-                            do { try store.device.say("Good morning! I am your Ghost Morning Coach.") }
+                            do { try store.device.say("Boo! I am your Ghost Mascot.") }
                             catch { store.error = error.localizedDescription }
                         } label: {
                             Label("Test Device TTS", systemImage: "play.circle.fill")
@@ -360,82 +365,22 @@ struct SettingsTabView: View {
                 .ghostCard()
 
                 VStack(alignment: .leading, spacing: 12) {
-                    Label("Private AI API (Gitignored / Keychain)", systemImage: "key.fill")
+                    Label("Nightstand saving mode", systemImage: "moon.stars.fill")
                         .font(.headline)
                         .foregroundStyle(GhostTheme.textPrimary)
-                    Text("Keys are stored in iOS Keychain or loaded from a gitignored Secrets.plist / environment variable. Never committed to Git.")
+                    Toggle("Keep screen awake while open", isOn: $keepAwake)
+                        .tint(GhostTheme.purple)
+                        .foregroundStyle(GhostTheme.textPrimary)
+                    Text("This is an in-app clock, not an iOS Lock Screen wallpaper. iOS can still turn off the screen in Low Power Mode. Plug in for a longer bedside display.")
                         .font(.caption)
                         .foregroundStyle(GhostTheme.textSecondary)
-
-                    Toggle("Enable Optional Ghost Voice API", isOn: Binding(
-                        get: { store.device.remoteEnabled },
-                        set: { store.device.remoteEnabled = $0 }
-                    ))
-                    .tint(GhostTheme.purple)
-                    .foregroundStyle(GhostTheme.textPrimary)
-
-                    TextField("https://api.openai.com/v1/chat/completions", text: Binding(
-                        get: { store.device.endpoint },
-                        set: { store.device.endpoint = $0 }
-                    ))
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .padding(10)
-                    .background(GhostTheme.cardElevated, in: RoundedRectangle(cornerRadius: 12))
-                    .foregroundStyle(GhostTheme.textPrimary)
-
-                    TextField("Model (e.g. gpt-4o-mini)", text: Binding(
-                        get: { store.device.model },
-                        set: { store.device.model = $0 }
-                    ))
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .padding(10)
-                    .background(GhostTheme.cardElevated, in: RoundedRectangle(cornerRadius: 12))
-                    .foregroundStyle(GhostTheme.textPrimary)
-
-                    SecureField(store.device.hasKey ? "API Key saved in Keychain (enter new to replace)" : "Paste API Key (saved only in Keychain)", text: $keyInput)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .padding(10)
-                        .background(GhostTheme.cardElevated, in: RoundedRectangle(cornerRadius: 12))
-                        .foregroundStyle(GhostTheme.textPrimary)
-
-                    HStack(spacing: 10) {
-                        Button {
-                            do {
-                                try store.device.saveKey(keyInput.trimmingCharacters(in: .whitespacesAndNewlines))
-                                keyInput = ""
-                                keySavedBanner = true
-                            } catch {
-                                store.error = error.localizedDescription
-                            }
-                        } label: {
-                            Text("Save Key to Keychain")
-                                .font(.caption.weight(.semibold))
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 9)
-                                .background(GhostTheme.purpleSoft, in: Capsule())
-                                .foregroundStyle(GhostTheme.ink)
-                        }
-                        if store.device.hasKey {
-                            Button(role: .destructive) {
-                                try? store.device.saveKey("")
-                                keySavedBanner = false
-                            } label: {
-                                Text("Clear Key")
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundStyle(GhostTheme.danger)
-                            }
-                        }
-                    }
-                    if keySavedBanner || store.device.hasKey {
-                        Text("✓ API Key active in local Keychain")
-                            .font(.caption2)
-                            .foregroundStyle(GhostTheme.purpleSoft)
-                    }
                 }
                 .ghostCard()
+                .onAppear { keepAwake = UIApplication.shared.isIdleTimerDisabled }
+                .onChange(of: keepAwake) { _, enabled in
+                    UIApplication.shared.isIdleTimerDisabled = enabled
+                }
+                .onDisappear { UIApplication.shared.isIdleTimerDisabled = false }
 
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 10) {

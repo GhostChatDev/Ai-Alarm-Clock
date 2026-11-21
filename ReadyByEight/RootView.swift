@@ -2,7 +2,11 @@ import SwiftUI
 
 struct RootView: View {
     @Environment(AppStore.self) private var store
+    @Environment(SleepSoundEngine.self) private var soundEngine
+    @Environment(SleepTrackerManager.self) private var sleepTracker
     @State private var tab = 0
+    @State private var showMixer = false
+    @State private var showAnalytics = false
 
     // Ghost Mascot's four native tabs share the same animated design system.
     var body: some View {
@@ -11,10 +15,32 @@ struct RootView: View {
             case 0: HomeView(switchTab: { tab = $0 })
             case 1: WakeTabView(switchTab: { tab = $0 })
             case 2: NightstandModeView()
+            case 4: CosmicSoundMixerSheet()
+            case 5: SleepAnalyticsView()
             default: SettingsTabView()
             }
         }
         .ghostScreen(animated: true)
+        .safeAreaInset(edge: .top, spacing: 0) {
+            if soundEngine.isPlaying || sleepTracker.isTrackingOvernight || store.nextAlarm != nil {
+                GhostLiveSessionPill(
+                    isPlaying: soundEngine.isPlaying,
+                    isTracking: sleepTracker.isTrackingOvernight,
+                    stageLabel: sleepTracker.currentLiveStage.rawValue,
+                    presetLabel: soundEngine.presetLabel,
+                    remainingSeconds: sleepTracker.isTrackingOvernight ? 0 : soundEngine.remainingSeconds,
+                    soundAction: { showMixer = true },
+                    sleepAction: { showAnalytics = true }
+                )
+                .padding(.top, 6)
+            }
+        }
+        .sheet(isPresented: $showMixer) {
+            NavigationStack { CosmicSoundMixerSheet() }
+        }
+        .sheet(isPresented: $showAnalytics) {
+            NavigationStack { SleepAnalyticsView() }
+        }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             HStack(spacing: 0) {
                 tabButton(0, "Home", "house.fill")

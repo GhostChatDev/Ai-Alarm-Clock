@@ -19,9 +19,6 @@ jobs:
         if: hashFiles('project.yml') != ''
         run: |
           brew install xcodegen
-          if [ -f AppStore.swift ] && [ -f ReadyByEight/AppStore.swift ]; then
-            cp AppStore.swift ReadyByEight/DeviceServices.swift
-          fi
           xcodegen generate
       - name: Find project and scheme
         id: find

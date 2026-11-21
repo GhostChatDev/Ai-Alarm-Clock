@@ -1,174 +1,161 @@
 import SwiftUI
 
-/// Cute "Lock-Screen Saving Mode": a dim OLED bedside clock with a sleeping ghost.
-/// Works great in landscape on a nightstand. iOS cannot draw over the real Lock
-/// Screen (no public API), so this is an in-app always-on bedside mode instead.
-/// Enable "Keep Screen Awake" and leave the app open on this screen.
+/// Cute bedside saving mode: one shared timeline keeps the sky, ghost, and bubbles in sync.
+/// iOS cannot draw over the system Lock Screen; this is an in-app bedside/StandBy-style view.
 struct NightstandModeView: View {
     @Environment(AppStore.self) private var store
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage("nightstand.keepAwake") private var keepAwake = true
     @AppStorage("nightstand.dreamBubbles") private var dreamBubbles = true
-    @State private var dimmed = false
+    @State private var dimmed = true
     @State private var showControls = true
+    @State private var clock = Date()
+    @State private var hideTask: Task<Void, Never>?
+
+    private let formatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "h:mm"
+        return formatter
+    }()
 
     var body: some View {
-        GeometryReader { geo in
-            let landscape = geo.size.width > geo.size.height
-            ZStack {
-                // Deep OLED black with a faint breathing aura so pixels barely move.
-                Color.black.ignoresSafeArea()
-                GhostTheme.GhostAurora(animated: true)
-                    .opacity(dimmed ? 0.10 : 0.32)
-                    .ignoresSafeArea()
+        TimelineView(.animation(minimumInterval: reduceMotion ? 60 : (dimmed ? 1.0 / 20.0 : 1.0 / 30.0))) { context in
+            let time = reduceMotion ? 0.0 : context.date.timeIntervalSinceReferenceDate
+            GeometryReader { proxy in
+                let size = proxy.size
+                ZStack {
+                    Color.black.ignoresSafeArea()
+                    GhostTheme.GhostAurora(animated: !reduceMotion)
+                        .opacity(dimmed ? 0.10 : 0.24)
+                        .ignoresSafeArea()
+                    if dreamBubbles && !reduceMotion {
+                        ForEach(0..<6, id: \.self) { index in
+                            DreamBubble(index: index, time: time, size: size)
+                        }
+                        .opacity(dimmed ? 0.3 : 0.65)
+                        .allowsHitTesting(false)
+                    }
+                    Group {
+                        if size.width > size.height {
+                            HStack(spacing: 36) {
+                                clockBlock(time)
+                                Spacer()
+                                ghostBlock(time)
+                            }
+                            .padding(.horizontal, 48)
+                        } else {
+                            VStack(spacing: 12) {
+                                clockBlock(time)
+                                Spacer()
+                                ghostBlock(time)
+                            }
+                            .padding(.vertical, 36)
+                        }
+                    }
+                    .opacity(dimmed ? 0.62 : 1)
+                    .animation(.easeInOut(duration: 1.2), value: dimmed)
 
-                if dreamBubbles {
-                    TimelineView(.animation(minimumInterval: 1.0 / 20.0)) { context in
-                        let t = context.date.timeIntervalSinceReferenceDate
-                        ForEach(0..<6, id: \.self) { i in
-                            DreamBubble(index: i, time: t, size: geo.size)
-                        }
-                    }
-                    .opacity(dimmed ? 0.25 : 0.7)
-                    .allowsHitTesting(false)
+                    BreathingRing(size: size, time: time)
+                        .opacity(dimmed ? 0.5 : 0.9)
+                    controls
                 }
-
-                Group {
-                    if landscape {
-                        HStack(spacing: 30) {
-                            clockBlock
-                            Spacer()
-                            ghostBlock
-                        }
-                        .padding(.horizontal, 40)
-                    } else {
-                        VStack(spacing: 8) {
-                            clockBlock
-                            Spacer(minLength: 0)
-                            ghostBlock
-                        }
-                        .padding(.vertical, 30)
-                    }
-                }
-                .opacity(dimmed ? 0.55 : 1.0)
-                .animation(.easeInOut(duration: 1.2), value: dimmed)
-
-                VStack {
-                    HStack {
-                        Spacer()
-                        if showControls {
-                            controlPanel
-                                .transition(.opacity.combined(with: .scale(scale: 0.9, anchor: .topTrailing)))
-                        }
-                    }
-                    Spacer()
-                    if showControls {
-                        Text("Tap anywhere to \(dimmed ? "brighten" : "dim") · Sweet dreams 🌙")
-                            .font(.caption2)
-                            .foregroundStyle(.white.opacity(0.35))
-                            .padding(.bottom, 14)
-                    }
-                }
-                .padding(20)
+                .contentShape(Rectangle())
+                .onTapGesture { toggleDim() }
+                .statusBarHidden(dimmed)
+                .persistentSystemOverlays(dimmed ? .hidden : .automatic)
             }
-            .contentShape(Rectangle())
-            .onTapGesture {
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                    dimmed.toggle()
-                    showControls = true
-                }
-                // Auto-hide controls again shortly after a tap.
-                Task {
-                    try? await Task.sleep(for: .seconds(4))
-                    withAnimation { showControls = false }
-                }
-            }
-            .statusBarHidden(dimmed)
-            .persistentSystemOverlays(dimmed ? .hidden : .automatic)
         }
-        .onAppear { updateIdleTimer() }
+        .environment(\.ghostWallpaperDimmed, true)
+        .onAppear {
+            updateIdleTimer()
+            clock = Date()
+        }
         .onChange(of: keepAwake) { _, _ in updateIdleTimer() }
-        .onDisappear { UIApplication.shared.isIdleTimerDisabled = false }
-    }
-
-    // MARK: - Clock
-    private var clockBlock: some View {
-        VStack(spacing: 2) {
-            TimelineView(.periodic(from: .now, by: 1)) { context in
-                Text(context.date, format: .dateTime.hour().minute())
-                    .font(.system(size: 104, weight: .thin, design: .rounded))
-                    .monospacedDigit()
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.5)
-                    .foregroundStyle(GhostTheme.purpleSoft)
-                    .shadow(color: GhostTheme.purple.opacity(0.55), radius: 26)
-            }
-            if let next = store.nextAlarm {
-                HStack(spacing: 6) {
-                    Image(systemName: "alarm.fill")
-                    Text(next.date, format: .dateTime.weekday(.abbreviated).hour().minute())
-                }
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(.white.opacity(0.55))
-            }
-            Text(Date.now, format: .dateTime.weekday(.wide).month().day())
-                .font(.caption)
-                .foregroundStyle(.white.opacity(0.4))
+        .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { date in
+            clock = date
+        }
+        .onDisappear {
+            hideTask?.cancel()
+            UIApplication.shared.isIdleTimerDisabled = false
         }
     }
 
-    // MARK: - Sleeping ghost
-    private var ghostBlock: some View {
-        VStack(spacing: 6) {
+    private func clockBlock(_ time: TimeInterval) -> some View {
+        VStack(spacing: 4) {
+            Text(clock.formatted(date: .omitted, time: .shortened))
+                .font(.system(size: 110, weight: .thin, design: .rounded))
+                .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.45)
+                .foregroundStyle(GhostTheme.purpleSoft)
+                .shadow(color: GhostTheme.purple.opacity(0.55 + 0.12 * sin(time * 0.5)), radius: 28)
+            if let alarm = store.nextAlarm {
+                Text(alarm.date, format: .dateTime.weekday(.abbreviated).hour().minute())
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.white.opacity(0.6))
+                    .labelStyle(.titleAndIcon)
+            }
+            Text(clock, format: .dateTime.weekday(.wide).month().day())
+                .font(.caption)
+                .foregroundStyle(.white.opacity(0.42))
+        }
+    }
+
+    private func ghostBlock(_ time: TimeInterval) -> some View {
+        VStack(spacing: 10) {
             ZStack(alignment: .topTrailing) {
                 GhostTheme.GhostMascot(mood: .sleeping, size: 180)
-                    .accessibilityLabel("A sleeping ghost with floating dream letters")
-                SleepZzz()
-                    .offset(x: 6, y: -14)
+                SleepZzz(time: time)
+                    .offset(x: 12, y: -12)
             }
             Text("shh… your ghost is dreaming")
                 .font(.caption.weight(.medium))
-                .foregroundStyle(.white.opacity(0.45))
+                .foregroundStyle(.white.opacity(0.48))
         }
     }
 
-    // MARK: - Controls
-    private var controlPanel: some View {
-        VStack(alignment: .trailing, spacing: 12) {
-            Toggle(isOn: $keepAwake) {
-                Label("Keep Awake", systemImage: "sun.max.fill")
-                    .font(.caption.weight(.semibold))
-            }
-            .toggleStyle(.switch)
-            .tint(GhostTheme.purple)
-            .labelsHidden()
-            .overlay(alignment: .leading) {
-                Text(keepAwake ? "Awake" : "Auto-lock")
-                    .font(.caption2)
-                    .foregroundStyle(.white.opacity(0.5))
-                    .offset(x: -70)
-            }
-            Toggle(isOn: $dreamBubbles) {
-                EmptyView()
-            }
-            .labelsHidden()
-            .toggleStyle(.button)
-            .buttonStyle(.plain)
-            .overlay {
-                Button {
-                    dreamBubbles.toggle()
-                } label: {
-                    Image(systemName: dreamBubbles ? "sparkles" : "sparkle")
-                        .font(.caption)
-                        .foregroundStyle(GhostTheme.purpleSoft)
-                        .padding(8)
-                        .background(.white.opacity(0.08), in: Circle())
+    private var controls: some View {
+        VStack {
+            HStack {
+                Spacer()
+                if showControls {
+                    HStack(spacing: 14) {
+                        Button { keepAwake.toggle() } label: {
+                            Label(keepAwake ? "Awake" : "Auto-lock", systemImage: keepAwake ? "sun.max.fill" : "moon.fill")
+                                .font(.caption.weight(.semibold))
+                        }
+                        Button { dreamBubbles.toggle() } label: {
+                            Image(systemName: dreamBubbles ? "sparkles" : "sparkle")
+                                .font(.caption)
+                        }
+                    }
+                    .foregroundStyle(GhostTheme.purpleSoft)
+                    .padding(14)
+                    .background(.ultraThinMaterial, in: Capsule())
+                    .environment(\.colorScheme, .dark)
+                    .transition(.opacity)
                 }
-                .buttonStyle(.plain)
+            }
+            Spacer()
+            if showControls {
+                Text("Tap to \(dimmed ? "brighten" : "dim") · Sweet dreams 🌙")
+                    .font(.caption2)
+                    .foregroundStyle(.white.opacity(0.38))
+                    .padding(.bottom, 12)
             }
         }
-        .padding(14)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18))
-        .environment(\.colorScheme, .dark)
+        .padding(20)
+    }
+
+    private func toggleDim() {
+        dimmed.toggle()
+        showControls = true
+        hideTask?.cancel()
+        hideTask = Task {
+            try? await Task.sleep(for: .seconds(4))
+            guard !Task.isCancelled else { return }
+            await MainActor.run { withAnimation { showControls = false } }
+        }
     }
 
     private func updateIdleTimer() {
@@ -176,30 +163,59 @@ struct NightstandModeView: View {
     }
 }
 
-/// Floating "z Z z" that drift up from the sleeping ghost.
 private struct SleepZzz: View {
-    @State private var rise = false
+    let time: TimeInterval
     var body: some View {
         ZStack {
-            ForEach(0..<3, id: \.self) { i in
+            ForEach(0..<3, id: \.self) { index in
+                let phase = (time / 3.2 + Double(index) / 3).truncatingRemainder(dividingBy: 1)
                 Text("z")
-                    .font(.system(size: CGFloat(14 + i * 6), weight: .bold, design: .rounded))
-                    .foregroundStyle(GhostTheme.purpleSoft.opacity(0.85 - Double(i) * 0.18))
-                    .offset(x: CGFloat(i) * 12, y: rise ? -CGFloat(30 + i * 14) : CGFloat(8 - i * 6))
-                    .opacity(rise ? 0 : 1)
-                    .animation(
-                        .easeInOut(duration: 2.4)
-                        .repeatForever(autoreverses: false)
-                        .delay(Double(i) * 0.8),
-                        value: rise
-                    )
+                    .font(.system(size: CGFloat(14 + index * 6), weight: .bold, design: .rounded))
+                    .foregroundStyle(GhostTheme.purpleSoft.opacity(0.8 * (1 - phase)))
+                    .offset(x: CGFloat(index) * 12, y: 10 - phase * 64)
             }
         }
-        .onAppear { rise = true }
     }
 }
 
-/// Soft dream bubbles that float up the nightstand screen.
+/// 4-7-8 breathing guide: inhale 4s, hold 7s, exhale 8s.
+private struct BreathingRing: View {
+    let size: CGSize
+    let time: Double
+
+    static func breath(at time: Double) -> (Double, String) {
+        let phase = time.truncatingRemainder(dividingBy: 19.0)
+        if phase < 4 { return (phase / 4.0, "Breathe in") }
+        if phase < 11 { return (1.0, "Hold") }
+        return (max(0, 1.0 - (phase - 11.0) / 8.0), "Breathe out")
+    }
+
+    var body: some View {
+        let (progress, label) = Self.breath(at: time)
+        let radius = min(size.width, size.height) * 0.13
+        let center = CGPoint(x: size.width * 0.22, y: size.height * 0.76)
+        ZStack {
+            Circle()
+                .stroke(GhostTheme.purpleSoft.opacity(0.2), lineWidth: 3)
+            Circle()
+                .trim(from: 0, to: max(0.02, progress))
+                .stroke(GhostTheme.purpleSoft.opacity(0.9), style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+            VStack(spacing: 4) {
+                Text(label)
+                    .font(.system(.caption, design: .rounded).weight(.semibold))
+                Text("4 · 7 · 8")
+                    .font(.caption2)
+                    .opacity(0.6)
+            }
+        }
+        .foregroundStyle(.white.opacity(0.85))
+        .frame(width: radius * 2, height: radius * 2)
+        .position(center)
+        .allowsHitTesting(false)
+    }
+}
+
 private struct DreamBubble: View {
     let index: Int
     let time: TimeInterval
@@ -209,11 +225,11 @@ private struct DreamBubble: View {
         let x = (Double(index) * 137.5).truncatingRemainder(dividingBy: max(size.width, 1))
         let travel = size.height + 120
         let y = size.height + 40 - (time * speed + Double(index) * 90).truncatingRemainder(dividingBy: travel)
-        let r = CGFloat(6 + (index % 3) * 5)
+        let radius = CGFloat(6 + (index % 3) * 5)
         Circle()
             .fill(GhostTheme.purpleSoft.opacity(0.16))
             .overlay(Circle().strokeBorder(GhostTheme.purpleSoft.opacity(0.22), lineWidth: 1))
-            .frame(width: r * 2, height: r * 2)
+            .frame(width: radius * 2, height: radius * 2)
             .position(x: x + sin(time * 0.4 + Double(index)) * 18, y: y)
     }
 }
