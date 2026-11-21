@@ -70,6 +70,12 @@ sits on the same dark lavender live wallpaper.
 - `ReadyByEight/AppStore.swift` — `@Observable` store and `GhostDevice`
   (audio, speech, notifications).
 - `ReadyByEight/AlarmModels.swift` — alarm, repeat and saved-state logic.
+- `ReadyByEight/GhostWallpaper.swift` — the six live cosmic wallpapers and the picker.
+- `ReadyByEight/GhostLiveActivity.swift` — the live-session pill (and Live Activity data).
+- `ReadyByEight/SleepSoundEngine.swift` — procedural sleep sounds (presets, layers, timer).
+- `ReadyByEight/CosmicSoundMixerSheet.swift` — the sleep-sound mixer screen.
+- `ReadyByEight/SleepTrackerManager.swift` — sleep stages from Apple Health, or a motion estimate.
+- `ReadyByEight/SleepAnalyticsView.swift` — the sleep chart.
 - `project.yml` — XcodeGen project, shared `GhostMascot` scheme, iOS 17.
 - `.github/workflows/ios.yml` — logic tests + iOS Simulator build.
 
