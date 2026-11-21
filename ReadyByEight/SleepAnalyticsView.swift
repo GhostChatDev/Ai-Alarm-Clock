@@ -3,9 +3,9 @@ import Charts
 
 struct SleepAnalyticsView: View {
     @Environment(AppStore.self) private var store
+    @Environment(SleepTrackerManager.self) private var tracker
 
     var body: some View {
-        let tracker = store.sleepTracker
         let report = tracker.report
 
         VStack(alignment: .leading, spacing: 14) {
@@ -19,8 +19,8 @@ struct SleepAnalyticsView: View {
                     .foregroundStyle(GhostTheme.textPrimary)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 5)
-                    .background(GhostTheme.purpleAccent.opacity(0.28), in: Capsule())
-                    .overlay(Capsule().strokeBorder(GhostTheme.lavender.opacity(0.45), lineWidth: 1))
+                    .background(GhostTheme.purple.opacity(0.28), in: Capsule())
+                    .overlay(Capsule().strokeBorder(GhostTheme.purpleSoft.opacity(0.45), lineWidth: 1))
             }
 
             Text(tracker.statusBanner)
@@ -29,7 +29,7 @@ struct SleepAnalyticsView: View {
 
             // 4 Metric cards: Score, REM, Deep, Efficiency
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                metricTile(title: "Score", value: "\(report.sleepScore)", sub: "Optimal", color: GhostTheme.lavender)
+                metricTile(title: "Score", value: "\(report.sleepScore)", sub: "Optimal", color: GhostTheme.purpleSoft)
                 metricTile(title: "REM", value: SleepNightReport.formatDuration(report.remMinutes), sub: "\(report.remPercent)% dream", color: SleepStageKind.rem.color)
                 metricTile(title: "Deep", value: SleepNightReport.formatDuration(report.deepMinutes), sub: "\(report.deepPercent)% restore", color: SleepStageKind.deep.color)
                 metricTile(title: "Efficiency", value: "\(report.efficiencyPercent)%", sub: SleepNightReport.formatDuration(report.totalAsleepMinutes), color: SleepStageKind.core.color)
@@ -77,10 +77,10 @@ struct SleepAnalyticsView: View {
                         .foregroundStyle(GhostTheme.textPrimary)
                     Text("Rings gently when exiting Deep/REM near your wake alarm")
                         .font(.system(.caption2, design: .rounded))
-                        .foregroundStyle(GhostTheme.textMuted)
+                        .foregroundStyle(GhostTheme.textSecondary)
                 }
             }
-            .toggleStyle(GhostSwitchStyle())
+            .toggleStyle(GhostTheme.GhostSwitchStyle())
 
             if let smartMsg = tracker.smartWakeTriggeredMessage {
                 Text(smartMsg)
@@ -91,7 +91,7 @@ struct SleepAnalyticsView: View {
             // Actions: Track Tonight, Simulate 8h Data, Sync Apple Health
             HStack(spacing: 8) {
                 Button {
-                    let target = store.nextScheduledAlarm?.date
+                    let target = store.nextAlarm?.date
                     tracker.toggleOvernightTracking(targetAlarmDate: target)
                 } label: {
                     Label(
@@ -100,7 +100,7 @@ struct SleepAnalyticsView: View {
                     )
                     .font(.system(.caption, design: .rounded).weight(.bold))
                 }
-                .buttonStyle(GhostPillButtonStyle(filled: true))
+                .buttonStyle(GhostTheme.GhostPillButtonStyle(filled: true))
 
                 Button {
                     tracker.simulateLastNight()
@@ -108,7 +108,7 @@ struct SleepAnalyticsView: View {
                     Label("Simulate 8h", systemImage: "wand.and.stars")
                         .font(.system(.caption, design: .rounded).weight(.semibold))
                 }
-                .buttonStyle(GhostPillButtonStyle(filled: false))
+                .buttonStyle(GhostTheme.GhostPillButtonStyle(filled: false))
 
                 Button {
                     Task { await tracker.syncFromHealthKit() }
@@ -116,7 +116,7 @@ struct SleepAnalyticsView: View {
                     Label("HealthKit", systemImage: "heart.text.square.fill")
                         .font(.system(.caption, design: .rounded).weight(.semibold))
                 }
-                .buttonStyle(GhostPillButtonStyle(filled: false))
+                .buttonStyle(GhostTheme.GhostPillButtonStyle(filled: false))
             }
         }
         .ghostCard(glow: tracker.isTrackingOvernight)
@@ -127,7 +127,7 @@ struct SleepAnalyticsView: View {
         VStack(spacing: 3) {
             Text(title)
                 .font(.system(size: 10, weight: .semibold, design: .rounded))
-                .foregroundStyle(GhostTheme.textMuted)
+                .foregroundStyle(GhostTheme.textSecondary)
             Text(value)
                 .font(.system(size: 14, weight: .bold, design: .rounded).monospacedDigit())
                 .foregroundStyle(color)
