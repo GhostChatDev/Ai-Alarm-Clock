@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 import UserNotifications
 import UniformTypeIdentifiers
 
@@ -36,6 +37,7 @@ struct GhostMascotApp: App {
                 .environment(sleepTracker)
                 .preferredColorScheme(.dark)
         }
+        .modelContainer(for: MorningGoalRecord.self)
     }
 }
 

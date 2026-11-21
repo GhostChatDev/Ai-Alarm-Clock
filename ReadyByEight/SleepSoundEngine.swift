@@ -40,6 +40,12 @@ final class SleepSoundEngine {
     var currentAmplitude: Double = 0.0
     var timerMinutes: Int = 30
     var remainingSeconds: Int = 0
+    var presetLabel: String { activePreset.rawValue }
+    var remainingText: String {
+        let minutes = remainingSeconds / 60
+        let seconds = remainingSeconds % 60
+        return String(format: "%d:%02d", minutes, seconds)
+    }
 
     private var engine: AVAudioEngine?
     private var sourceNode: AVAudioSourceNode?

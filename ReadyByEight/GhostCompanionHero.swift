@@ -77,35 +77,3 @@ struct GhostCompanionHero: View {
     }
 }
 
-/// Compact live-session status, expandable from every tab without covering controls.
-struct GhostLiveSessionPill: View {
-    let title: String
-    let subtitle: String
-    let isAnimating: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 10) {
-                GhostMascot(isSpeaking: isAnimating, size: 30)
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(title).font(.caption.weight(.bold)).lineLimit(1)
-                    Text(subtitle).font(.caption2).foregroundStyle(GhostTheme.textSecondary).lineLimit(1)
-                }
-                Spacer(minLength: 4)
-                HStack(spacing: 2) {
-                    ForEach(0..<4, id: \.self) { index in
-                        Capsule().fill(GhostTheme.lavender)
-                            .frame(width: 2, height: isAnimating ? CGFloat(5 + (index % 3) * 4) : 4)
-                    }
-                }
-                Image(systemName: "chevron.up").font(.caption2)
-            }
-            .padding(.horizontal, 13).padding(.vertical, 8)
-            .background(.ultraThinMaterial, in: Capsule())
-            .overlay(Capsule().stroke(GhostTheme.lavender.opacity(0.35), lineWidth: 1))
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("\(title). \(subtitle). Open live controls.")
-    }
-}

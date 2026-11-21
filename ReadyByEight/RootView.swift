@@ -26,13 +26,12 @@ struct RootView: View {
                 GhostLiveSessionPill(
                     isPlaying: soundEngine.isPlaying,
                     isTracking: sleepTracker.isTrackingOvernight,
-                    countdownText: sleepTracker.isTrackingOvernight ? sleepTracker.currentLiveStage.rawValue : (soundEngine.isPlaying ? soundEngine.remainingText : (store.nextAlarm.map { $0.date.formatted(date: .omitted, time: .shortened) } ?? "")),
-                    waveformPhase: Double(Date.now.timeIntervalSinceReferenceDate)
-                ) {
-                    showMixer = true
-                } onTrack: {
-                    showAnalytics = true
-                }
+                    stageLabel: sleepTracker.currentLiveStage.rawValue,
+                    presetLabel: soundEngine.presetLabel,
+                    remainingSeconds: sleepTracker.isTrackingOvernight ? 0 : soundEngine.remainingSeconds,
+                    soundAction: { showMixer = true },
+                    sleepAction: { showAnalytics = true }
+                )
                 .padding(.top, 6)
             }
         }

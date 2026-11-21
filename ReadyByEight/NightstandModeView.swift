@@ -55,7 +55,7 @@ struct NightstandModeView: View {
                     .opacity(dimmed ? 0.62 : 1)
                     .animation(.easeInOut(duration: 1.2), value: dimmed)
 
-                    breathingRing(size: size, time: time)
+                    BreathingRing(size: size, time: time)
                         .opacity(dimmed ? 0.5 : 0.9)
                     controls
                 }
@@ -176,9 +176,14 @@ private struct SleepZzz: View {
             }
         }
     }
-    /// 4-7-8 breathing guide: inhale 4s, hold 7s, exhale 8s.
-    @ViewBuilder
-    private func breathingRing(size: CGSize, time: Double) -> some View {
+}
+
+/// 4-7-8 breathing guide: inhale 4s, hold 7s, exhale 8s.
+private struct BreathingRing: View {
+    let size: CGSize
+    let time: Double
+
+    var body: some View {
         let phase = time.truncatingRemainder(dividingBy: 19.0)
         let progress: Double
         let label: String
