@@ -1,9 +1,12 @@
 import Foundation
 
 var checks = 0
-func expect(_ condition: @autoclosure () -> Bool, _ description: String) {
+@inline(__always) func require(_ condition: @autoclosure () -> Bool, _ description: String) {
     guard condition() else { fatalError("FAIL: \(description)") }
     checks += 1
+}
+func expect(_ condition: @autoclosure () -> Bool, _ description: String) {
+    require(condition(), description)
 }
 func calendar(_ zone: String) -> Calendar {
     var result = Calendar(identifier: .gregorian)
@@ -58,3 +61,60 @@ expect(OfflineCoach.reply(to: "I am late", nextAlarm: nil).contains("No rushing"
 expect(OfflineCoach.reply(to: "challenge", nextAlarm: nil).contains("two-minute"), "Small challenge")
 expect(!OfflineCoach.reply(to: "hello", nextAlarm: nil).isEmpty, "Fallback response")
 print("PASS: \(checks) scheduling, DST, persistence and coach checks")
+
+// Sleep models live with the SwiftUI manager in the app target. These Foundation-only
+// mirrors run on Linux so CI can reject an empty or incomplete seeded hypnogram.
+enum TestSleepStage: String, CaseIterable {
+    case awake = "Awake", rem = "REM", core = "Core", deep = "Deep"
+}
+struct TestSleepSample: Equatable {
+    let startDate: Date
+    let endDate: Date
+    let stage: TestSleepStage
+    var durationMinutes: Double { max(0, endDate.timeIntervalSince(startDate) / 60) }
+}
+struct TestSleepNight {
+    let samples: [TestSleepSample]
+    var totalInBedMinutes: Double {
+        samples.reduce(0) { $0 + $1.durationMinutes }
+    }
+    func minutes(_ stage: TestSleepStage) -> Double {
+        samples.filter { $0.stage == stage }.reduce(0) { $0 + $1.durationMinutes }
+    }
+}
+func buildRealisticTestNight(endingAt end: Date) -> TestSleepNight {
+    let segments: [(TestSleepStage, Int)] = [
+        (.awake, 12), (.core, 34), (.deep, 38), (.core, 14), (.rem, 12),
+        (.core, 32), (.deep, 32), (.core, 16), (.rem, 22),
+        (.core, 36), (.deep, 18), (.core, 20), (.rem, 28),
+        (.awake, 6), (.core, 34), (.rem, 32),
+        (.core, 50), (.rem, 36), (.awake, 8)
+    ]
+    let totalMinutes = segments.reduce(0) { $0 + $1.1 }
+    var cursor = end.addingTimeInterval(-Double(totalMinutes * 60))
+    var samples: [TestSleepSample] = []
+    for (stage, minutes) in segments {
+        let next = cursor.addingTimeInterval(Double(minutes * 60))
+        samples.append(TestSleepSample(startDate: cursor, endDate: next, stage: stage))
+        cursor = next
+    }
+    return TestSleepNight(samples: samples)
+}
+
+let sleepEnd = date("2026-11-16T08:00:00Z")
+let seededNight = buildRealisticTestNight(endingAt: sleepEnd)
+expect(!seededNight.samples.isEmpty, "Seeded hypnogram must not be empty")
+expect(!buildRealisticTestNight(endingAt: .distantPast).samples.isEmpty, "Every seeded night contains sleep stages")
+expect(seededNight.totalInBedMinutes == 480, "Seeded night spans exactly eight hours")
+expect(seededNight.samples.first?.startDate == date("2026-11-16T00:00:00Z"), "Seeded night starts eight hours before waking")
+expect(seededNight.samples.last?.endDate == sleepEnd, "Final sleep segment ends at wake time")
+expect(TestSleepStage.allCases.allSatisfy { seededNight.minutes($0) > 0 }, "Hypnogram includes Awake, REM, Core, and Deep")
+expect(seededNight.minutes(.awake) == 26, "Awake stage totals are correct")
+expect(seededNight.minutes(.rem) == 130, "REM stage totals are correct")
+expect(seededNight.minutes(.core) == 236, "Core stage totals are correct")
+expect(seededNight.minutes(.deep) == 88, "Deep stage totals are correct")
+for (left, right) in zip(seededNight.samples, seededNight.samples.dropFirst()) {
+    expect(left.endDate == right.startDate, "Sleep segments are contiguous")
+}
+print("Seeded night: REM \(Int(seededNight.minutes(.rem)))m, Deep \(Int(seededNight.minutes(.deep)))m, Core \(Int(seededNight.minutes(.core)))m, Awake \(Int(seededNight.minutes(.awake)))m")
+print("PASS: \(checks) total logic checks")
