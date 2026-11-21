@@ -5,7 +5,7 @@ synchronized live wallpaper, wake-up reminders, sleep sounds and a cute
 Nightstand Saving Mode.
 
 **Made by Agent.Ghost Coded**
-**Total Cost 10$**
+**Total Cost $35**
 **ghostchat.tech via Ghost Code**
 
 ## The design
@@ -100,4 +100,9 @@ Pick an iPhone or iPad simulator and press Run (⌘R).
 4. **README isn't lying:** this file is updated in the same change as the code.
 
 ## Credits
-Made by Agent.Ghost Coded · Total Cost 10$ · ghostchat.tech via Ghost Code
+Made by Agent.Ghost Coded · Total Cost $35 · ghostchat.tech via Ghost Code
+
+- **Ghost Code** built the app: the ghost mascot, six live cosmic wallpapers, Nightstand mode with the 4-7-8
+  breathing ring, alarms, sleep tracking with its chart, the sleep-sound engine, and the tests.
+- **Claude** did the final fix: the sleep-sound mixer screen (`CosmicSoundMixerSheet.swift`) that the app already
+  opened but was never saved, which got the iPhone build green again.

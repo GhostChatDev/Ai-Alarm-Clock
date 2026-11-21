@@ -389,7 +389,7 @@ struct SettingsTabView: View {
                             Text("Made by Agent.Ghost Coded")
                                 .font(.subheadline.weight(.bold))
                                 .foregroundStyle(GhostTheme.textPrimary)
-                            Text("Total Cost 10$")
+                            Text("Total Cost $35")
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(GhostTheme.purpleSoft)
                             Text("ghostchat.tech via Ghost Code")
@@ -398,6 +398,14 @@ struct SettingsTabView: View {
                         }
                         Spacer()
                     }
+                    Text("Ghost Code built the app: the ghost mascot, six live cosmic wallpapers, Nightstand mode with the 4-7-8 breathing ring, alarms, sleep tracking with its chart, the sleep-sound engine and the tests.")
+                        .font(.caption)
+                        .foregroundStyle(GhostTheme.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text("Claude did the final fix: the sleep-sound mixer screen that got the iPhone build green again.")
+                        .font(.caption)
+                        .foregroundStyle(GhostTheme.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 .ghostCard()
             }
