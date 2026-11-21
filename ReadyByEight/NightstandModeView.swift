@@ -65,7 +65,7 @@ struct NightstandModeView: View {
                 .persistentSystemOverlays(dimmed ? .hidden : .automatic)
             }
         }
-        .ghostWallpaperDimmed(true)
+        .environment(\.ghostWallpaperDimmed, true)
         .onAppear {
             updateIdleTimer()
             clock = Date()
