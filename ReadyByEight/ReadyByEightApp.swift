@@ -19,7 +19,7 @@ final class MorningGoalRecord {
 }
 
 @main
-struct ReadyByEightApp: App {
+struct GhostMascotApp: App {
     @State private var store = AppStore()
     private let delegate = NotificationDelegate()
 
