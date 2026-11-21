@@ -20,6 +20,11 @@ targets:
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
         SWIFT_VERSION: "5.10"
         TARGETED_DEVICE_FAMILY: "1,2"
+        INFOPLIST_KEY_NSHealthShareUsageDescription: "Ghost Mascot reads your sleep stages (REM, Deep, Core) from Apple Health to show your nightly hypnogram."
+        INFOPLIST_KEY_NSHealthUpdateUsageDescription: "Ghost Mascot saves sleep sessions you track in the app back to Apple Health."
+        INFOPLIST_KEY_NSMotionUsageDescription: "Ghost Mascot uses device motion for live-wallpaper tilt parallax and optional mattress sleep tracking."
+        INFOPLIST_KEY_UIBackgroundModes: "audio"
+        CODE_SIGNING_ALLOWED: NO
 schemes:
   GhostMascot:
     build:
