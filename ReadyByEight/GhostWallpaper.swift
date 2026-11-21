@@ -1,5 +1,17 @@
 import SwiftUI
 
+private struct GhostWallpaperDimmedKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+extension EnvironmentValues {
+    /// Nightstand keeps the same sky, but dims every layer together to save power.
+    var ghostWallpaperDimmed: Bool {
+        get { self[GhostWallpaperDimmedKey.self] }
+        set { self[GhostWallpaperDimmedKey.self] = newValue }
+    }
+}
+
 /// Six animated cosmic wallpaper themes plus an optional wallpaper from a web image URL.
 enum CosmicTheme: String, CaseIterable, Identifiable {
     case lavenderNebula, midnightOcean, auroraDream, sunsetGalaxy, cosmicRose, stardustMint
@@ -45,11 +57,12 @@ struct GhostLiveWallpaper: View {
     @AppStorage("wallpaperTheme") private var themeRaw = CosmicTheme.lavenderNebula.rawValue
     @AppStorage("wallpaperURL") private var urlText = ""
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.ghostWallpaperDimmed) private var dimmed
 
     var body: some View {
         let theme = CosmicTheme.from(themeRaw)
         GeometryReader { geo in
-            TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: reduceMotion)) { context in
+            TimelineView(.animation(minimumInterval: dimmed ? 0.25 : 1.0 / 30.0, paused: reduceMotion)) { context in
                 let t = reduceMotion ? 0 : context.date.timeIntervalSinceReferenceDate
                 ZStack {
                     LinearGradient(colors: [theme.colors[0], theme.colors[1]], startPoint: .top, endPoint: .bottom)
@@ -78,7 +91,20 @@ struct GhostLiveWallpaper: View {
                             .opacity(0.35 + 0.6 * abs(sin(t * 0.9 + Double(i))))
                             .position(x: x * geo.size.width, y: y * geo.size.height)
                     }
+                    // Three slow shooting stars, sharing the same timeline as the mascot.
+                    ForEach(0..<3, id: \.self) { i in
+                        let cycle = (t * 0.075 + Double(i) / 3).truncatingRemainder(dividingBy: 1)
+                        Capsule()
+                            .fill(LinearGradient(colors: [.clear, .white.opacity(0.8)], startPoint: .leading, endPoint: .trailing))
+                            .frame(width: 90, height: 2)
+                            .rotationEffect(.degrees(22))
+                            .opacity(sin(cycle * .pi) * 0.65)
+                            .position(x: geo.size.width * (1.15 - cycle * 0.75),
+                                      y: geo.size.height * (0.12 + Double(i) * 0.17 + cycle * 0.18))
+                    }
                 }
+                .brightness(dimmed ? -0.12 : 0)
+                .opacity(dimmed ? 0.24 : 1)
             }
         }
         .ignoresSafeArea()

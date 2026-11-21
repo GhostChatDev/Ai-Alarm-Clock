@@ -4,6 +4,7 @@ import SwiftUI
 struct GhostCompanionHero: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var delighted = false
+    @State private var burst = 0
     var onGreeting: () -> Void
 
     var body: some View {
@@ -26,10 +27,11 @@ struct GhostCompanionHero: View {
             Button {
                 withAnimation(.spring(response: 0.5, dampingFraction: 0.6)) {
                     delighted.toggle()
+                    burst += 1
                 }
                 onGreeting()
             } label: {
-                Label(delighted ? "Say hello again" : "Say hello", systemImage: "sparkles")
+                Label(delighted ? "Dance with Ghost" : "Say hello", systemImage: "sparkles")
                     .font(.subheadline.weight(.semibold))
                     .padding(.horizontal, 20).padding(.vertical, 12)
                     .background(.white.opacity(0.09), in: Capsule())
@@ -66,13 +68,38 @@ struct GhostCompanionHero: View {
                         .offset(x: CGFloat(cos(time * 0.45 + phase) * 130),
                                 y: CGFloat(sin(time * 0.45 + phase) * 105))
                 }
+                // A small Lissajous roam keeps the companion inside its 290pt stage.
                 GhostTheme.GhostMascot(mood: delighted ? .awake : .idle, size: 170)
-                    .scaleEffect(delighted ? 1.08 : 1)
+                    .rotationEffect(.degrees(delighted ? sin(time * 7) * 9 : 0))
+                    .scaleEffect((delighted ? 1.08 : 1) + sin(time * 2) * 0.015)
+                    .offset(x: sin(time * 0.42) * 14,
+                            y: sin(time * 0.84) * 12)
+                    .shadow(color: GhostTheme.purpleSoft.opacity(0.3), radius: 24)
+                if delighted {
+                    ForEach(0..<12, id: \.self) { index in
+                        let angle = Double(index) * .pi * 2 / 12
+                        let travel = (time * 0.8).truncatingRemainder(dividingBy: 1)
+                        Image(systemName: index.isMultiple(of: 2) ? "heart.fill" : "star.fill")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(index.isMultiple(of: 2) ? GhostTheme.pink : GhostTheme.yellow)
+                            .opacity(1 - travel)
+                            .offset(x: cos(angle) * (45 + travel * 100),
+                                    y: sin(angle) * (45 + travel * 100))
+                    }
+                }
             }
             .frame(height: 270)
             .frame(maxWidth: .infinity)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                withAnimation(.spring(response: 0.45, dampingFraction: 0.6)) {
+                    delighted.toggle()
+                    burst += 1
+                }
+            }
+            .accessibilityLabel("Floating ghost. Tap to wave and dance.")
         }
-        .allowsHitTesting(false)
-        .accessibilityLabel("Floating ghost surrounded by orbiting stars")
+        .accessibilityIdentifier("ghostMascotStage")
+        .accessibilityAddTraits(.isButton)
     }
 }
