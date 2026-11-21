@@ -55,6 +55,8 @@ struct NightstandModeView: View {
                     .opacity(dimmed ? 0.62 : 1)
                     .animation(.easeInOut(duration: 1.2), value: dimmed)
 
+                    breathingRing(size: size, time: time)
+                        .opacity(dimmed ? 0.5 : 0.9)
                     controls
                 }
                 .contentShape(Rectangle())
@@ -173,6 +175,44 @@ private struct SleepZzz: View {
                     .offset(x: CGFloat(index) * 12, y: 10 - phase * 64)
             }
         }
+    }
+    /// 4-7-8 breathing guide: inhale 4s, hold 7s, exhale 8s.
+    @ViewBuilder
+    private func breathingRing(size: CGSize, time: Double) -> some View {
+        let phase = time.truncatingRemainder(dividingBy: 19.0)
+        let progress: Double
+        let label: String
+        if phase < 4 {
+            progress = phase / 4.0
+            label = "Breathe in"
+        } else if phase < 11 {
+            progress = 1.0
+            label = "Hold"
+        } else {
+            progress = max(0, 1.0 - (phase - 11.0) / 8.0)
+            label = "Breathe out"
+        }
+        let radius = min(size.width, size.height) * 0.13
+        let center = CGPoint(x: size.width * 0.22, y: size.height * 0.76)
+        ZStack {
+            Circle()
+                .stroke(GhostTheme.purpleSoft.opacity(0.2), lineWidth: 3)
+            Circle()
+                .trim(from: 0, to: max(0.02, progress))
+                .stroke(GhostTheme.purpleSoft.opacity(0.9), style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+            VStack(spacing: 4) {
+                Text(label)
+                    .font(.system(.caption, design: .rounded).weight(.semibold))
+                Text("4 · 7 · 8")
+                    .font(.caption2)
+                    .opacity(0.6)
+            }
+        }
+        .foregroundStyle(.white.opacity(0.85))
+        .frame(width: radius * 2, height: radius * 2)
+        .position(center)
+        .allowsHitTesting(false)
     }
 }
 
