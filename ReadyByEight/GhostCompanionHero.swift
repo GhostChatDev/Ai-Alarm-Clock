@@ -22,7 +22,7 @@ struct GhostCompanionHero: View {
             Text("Floating together, drifting into the night.")
                 .font(.subheadline).foregroundStyle(GhostTheme.textSecondary)
             Button(delighted ? "Say hello again" : "Say hello", action: greet)
-                .buttonStyle(GhostTheme.GhostPillButtonStyle(filled: true))
+                .buttonStyle(GhostTheme.GhostPressStyle())
                 .frame(maxWidth: 230)
         }
         .frame(maxWidth: .infinity)
@@ -62,8 +62,8 @@ struct GhostCompanionHero: View {
                 .frame(width: 185, height: 185).blur(radius: 25)
                 .scaleEffect(1 + 0.08 * CGFloat(sin(t * 1.15)))
                 .position(center)
-            GhostMascot(isSpeaking: delighted, size: 140)
-                .shadow(color: GhostTheme.lavender.opacity(0.38), radius: 24)
+            GhostTheme.GhostMascot(isSpeaking: delighted, size: 140)
+                .shadow(color: GhostTheme.purple.opacity(0.38), radius: 24)
                 .position(center)
                 .rotationEffect(.degrees(sin(t * 0.34) * 5))
                 .scaleEffect(delighted ? 1.08 : 1)
@@ -81,7 +81,7 @@ struct GhostCompanionHero: View {
         let opacity: Double = 0.35 + 0.5 * abs(sin(t + Double(index)))
         return Image(systemName: index.isMultiple(of: 3) ? "star.fill" : "sparkle")
             .font(.system(size: index.isMultiple(of: 2) ? 9 : 12))
-            .foregroundStyle(GhostTheme.lavender)
+            .foregroundStyle(GhostTheme.purple)
             .opacity(opacity)
             .position(x: width / 2 + starX, y: 108 + starY)
     }
