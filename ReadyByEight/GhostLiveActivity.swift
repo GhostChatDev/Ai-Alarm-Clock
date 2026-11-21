@@ -67,8 +67,7 @@ struct GhostLiveSessionPill: View {
                         Label(isTracking ? "Sleep report" : "Sleep", systemImage: "bed.double.fill")
                     }
                     if let next = store.nextAlarm {
-                        Label(next.date, format: .dateTime.hour().minute())
-                            .labelStyle(.titleOnly)
+                        Text(next.date.formatted(date: .omitted, time: .shortened))
                             .font(.caption2)
                             .foregroundStyle(GhostTheme.textSecondary)
                     }
@@ -95,7 +94,7 @@ struct GhostLiveSessionPill: View {
             return "Tracking Sleep · \(stageLabel) Stage"
         }
         if let next = store.nextAlarm {
-            return "Ghost Live · Wake \(next.date, format: .dateTime.hour().minute())"
+            return "Ghost Live · Wake \(next.date.formatted(date: .omitted, time: .shortened))"
         }
         return "Ghost Live"
     }
