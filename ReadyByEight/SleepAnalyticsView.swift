@@ -64,7 +64,7 @@ struct SleepAnalyticsView: View {
                 AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [3]))
                     .foregroundStyle(Color.white.opacity(0.10))
                 AxisValueLabel(format: .dateTime.hour(.defaultDigits(amPM: .abbreviated)))
-                    .foregroundStyle(GhostTheme.textMuted)
+                    .foregroundStyle(GhostTheme.textSecondary)
             }
         }
         .chartYAxis {
