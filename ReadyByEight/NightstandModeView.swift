@@ -183,20 +183,15 @@ private struct BreathingRing: View {
     let size: CGSize
     let time: Double
 
-    var body: some View {
+    static func breath(at time: Double) -> (Double, String) {
         let phase = time.truncatingRemainder(dividingBy: 19.0)
-        let progress: Double
-        let label: String
-        if phase < 4 {
-            progress = phase / 4.0
-            label = "Breathe in"
-        } else if phase < 11 {
-            progress = 1.0
-            label = "Hold"
-        } else {
-            progress = max(0, 1.0 - (phase - 11.0) / 8.0)
-            label = "Breathe out"
-        }
+        if phase < 4 { return (phase / 4.0, "Breathe in") }
+        if phase < 11 { return (1.0, "Hold") }
+        return (max(0, 1.0 - (phase - 11.0) / 8.0), "Breathe out")
+    }
+
+    var body: some View {
+        let (progress, label) = Self.breath(at: time)
         let radius = min(size.width, size.height) * 0.13
         let center = CGPoint(x: size.width * 0.22, y: size.height * 0.76)
         ZStack {

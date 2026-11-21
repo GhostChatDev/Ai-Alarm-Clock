@@ -237,7 +237,9 @@ struct MorningGhostScreen: View {
 
     private func suggestionPill(_ title: String) -> some View {
         Button {
-            Task { await store.send(title) }
+            modelContext.insert(MorningGoalRecord(title: title))
+            try? modelContext.save()
+            try? store.device.say("Nice. \(title) is your goal today.")
         } label: {
             Text(title)
                 .font(.subheadline.weight(.medium))
@@ -256,7 +258,7 @@ struct MorningGhostScreen: View {
         focused = false
         modelContext.insert(MorningGoalRecord(title: text))
         try? modelContext.save()
-        Task { await store.send(text) }
+        try? store.device.say("Saved. \(text) is your goal today.")
     }
 }
 

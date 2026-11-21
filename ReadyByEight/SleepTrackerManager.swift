@@ -310,11 +310,11 @@ final class SleepTrackerManager {
     static func buildRealisticNight(endingAt end: Date, source: String) -> SleepNightReport {
         // 8-hour realistic architecture across five 90-minute ultradian cycles
         let segments: [(SleepStageKind, Int)] = [
-            (.awake, 12), (.core, 28), (.deep, 38), (.core, 14), (.rem, 12),
-            (.core, 26), (.deep, 32), (.core, 16), (.rem, 22),
-            (.core, 30), (.deep, 18), (.core, 20), (.rem, 28),
+            (.awake, 12), (.core, 34), (.deep, 38), (.core, 14), (.rem, 12),
+            (.core, 32), (.deep, 32), (.core, 16), (.rem, 22),
+            (.core, 36), (.deep, 18), (.core, 20), (.rem, 28),
             (.awake, 6),  (.core, 34), (.rem, 32),
-            (.core, 42), (.rem, 36), (.awake, 8)
+            (.core, 50), (.rem, 36), (.awake, 8)
         ]
         let totalMinutes = segments.reduce(0) { $0 + $1.1 }
         var cursor = end.addingTimeInterval(-Double(totalMinutes * 60))
