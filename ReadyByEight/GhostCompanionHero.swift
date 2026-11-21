@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The companion, not the alarm controls, is the first thing you see.
+/// A roaming companion whose drift, breathing and halo share one animation clock.
 struct GhostCompanionHero: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var delighted = false
@@ -12,94 +12,100 @@ struct GhostCompanionHero: View {
             HStack(spacing: 7) {
                 Circle().fill(GhostTheme.purpleSoft).frame(width: 6, height: 6)
                 Text(delighted ? "YOUR GHOST SAYS HELLO" : "YOUR LITTLE NIGHT COMPANION")
-                    .font(.system(size: 10, weight: .bold, design: .rounded))
-                    .tracking(2)
+                    .font(.system(size: 10, weight: .bold, design: .rounded)).tracking(2)
             }
             .foregroundStyle(GhostTheme.purpleSoft)
             stage
             Text(delighted ? "Hey, you. I'm right here." : "A little magic. Just for you.")
                 .font(.system(size: 23, weight: .semibold, design: .rounded))
-                .multilineTextAlignment(.center)
-                .contentTransition(.opacity)
+                .multilineTextAlignment(.center).contentTransition(.opacity)
             Text("Floating together, drifting into the night.")
-                .font(.subheadline)
-                .foregroundStyle(GhostTheme.textSecondary)
-            Button {
-                withAnimation(.spring(response: 0.5, dampingFraction: 0.6)) {
-                    delighted.toggle()
-                    burst += 1
-                }
-                onGreeting()
-            } label: {
-                Label(delighted ? "Dance with Ghost" : "Say hello", systemImage: "sparkles")
-                    .font(.subheadline.weight(.semibold))
-                    .padding(.horizontal, 20).padding(.vertical, 12)
-                    .background(.white.opacity(0.09), in: Capsule())
-                    .overlay(Capsule().strokeBorder(GhostTheme.purpleSoft.opacity(0.3)))
-            }
-            .buttonStyle(GhostTheme.GhostPressStyle())
-            .accessibilityIdentifier("ghostGreeting")
-            .padding(.top, 8)
+                .font(.subheadline).foregroundStyle(GhostTheme.textSecondary)
+            Button(delighted ? "Say hello again" : "Say hello", action: greet)
+                .buttonStyle(GhostPrimaryButtonStyle())
+                .frame(maxWidth: 230)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 24)
-        .accessibilityElement(children: .contain)
+        .animation(.smooth(duration: 0.5), value: delighted)
+    }
+
+    private func greet() {
+        onGreeting()
+        delighted.toggle()
+        burst += 1
     }
 
     private var stage: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30, paused: reduceMotion)) { context in
-            let time = reduceMotion ? 0 : context.date.timeIntervalSinceReferenceDate
-            ZStack {
-                Circle()
-                    .fill(RadialGradient(colors: [GhostTheme.purple.opacity(0.45), .clear],
-                                         center: .center, startRadius: 10, endRadius: 145))
-                    .frame(width: 290, height: 290)
-                    .scaleEffect(1 + 0.08 * sin(time * 1.4))
-                Ellipse()
-                    .stroke(GhostTheme.purpleSoft.opacity(0.22), lineWidth: 1)
-                    .frame(width: 280, height: 85)
-                    .rotationEffect(.degrees(-18))
-                    .offset(y: 60)
-                ForEach(0..<9, id: \.self) { index in
-                    let phase = Double(index) * .pi * 2 / 9
-                    Image(systemName: index.isMultiple(of: 3) ? "star.fill" : "sparkle")
-                        .font(.system(size: index.isMultiple(of: 3) ? 12 : 7))
-                        .foregroundStyle(index.isMultiple(of: 2) ? GhostTheme.pink : GhostTheme.purpleSoft)
-                        .offset(x: CGFloat(cos(time * 0.45 + phase) * 130),
-                                y: CGFloat(sin(time * 0.45 + phase) * 105))
-                }
-                // A small Lissajous roam keeps the companion inside its 290pt stage.
-                GhostTheme.GhostMascot(mood: delighted ? .awake : .idle, size: 170)
-                    .rotationEffect(.degrees(delighted ? sin(time * 7) * 9 : 0))
-                    .scaleEffect((delighted ? 1.08 : 1) + sin(time * 2) * 0.015)
-                    .offset(x: sin(time * 0.42) * 14,
-                            y: sin(time * 0.84) * 12)
-                    .shadow(color: GhostTheme.purpleSoft.opacity(0.3), radius: 24)
-                if delighted {
-                    ForEach(0..<12, id: \.self) { index in
-                        let angle = Double(index) * .pi * 2 / 12
-                        let travel = (time * 0.8).truncatingRemainder(dividingBy: 1)
-                        Image(systemName: index.isMultiple(of: 2) ? "heart.fill" : "star.fill")
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundStyle(index.isMultiple(of: 2) ? GhostTheme.pink : GhostTheme.yellow)
-                            .opacity(1 - travel)
-                            .offset(x: cos(angle) * (45 + travel * 100),
-                                    y: sin(angle) * (45 + travel * 100))
+        TimelineView(.animation(minimumInterval: reduceMotion ? 1 : 1.0 / 30.0, paused: reduceMotion)) { context in
+            let t = reduceMotion ? 0 : context.date.timeIntervalSinceReferenceDate
+            GeometryReader { geo in
+                let width = min(geo.size.width, 360)
+                let x = reduceMotion ? 0 : sin(t * 0.34) * width * 0.18
+                let y = reduceMotion ? 0 : sin(t * 0.68) * 9
+                ZStack {
+                    ForEach(0..<9, id: \.self) { index in
+                        let angle = t * 0.24 + Double(index) * (2 * Double.pi / 9)
+                        let radius = min(geo.size.width * 0.36, 132)
+                        let starX = cos(angle) * radius
+                        let starY = sin(angle) * 31 - 52
+                        Image(systemName: index.isMultiple(of: 3) ? "star.fill" : "sparkle")
+                            .font(.system(size: index.isMultiple(of: 2) ? 9 : 12))
+                            .foregroundStyle(GhostTheme.lavender)
+                            .opacity(0.35 + 0.5 * abs(sin(t + Double(index))))
+                            .position(x: geo.size.width / 2 + starX, y: 108 + starY)
                     }
+                    Circle()
+                        .fill(GhostTheme.purple.opacity(0.12))
+                        .frame(width: 185, height: 185).blur(radius: 25)
+                        .scaleEffect(1 + 0.08 * sin(t * 1.15))
+                        .position(x: geo.size.width / 2 + x, y: 108 + y)
+                    GhostMascot(isSpeaking: delighted, size: 140)
+                        .shadow(color: GhostTheme.lavender.opacity(0.38), radius: 24)
+                        .position(x: geo.size.width / 2 + x, y: 108 + y)
+                        .rotationEffect(.degrees(sin(t * 0.34) * 5))
+                        .scaleEffect(delighted ? 1.08 : 1)
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .contentShape(Rectangle())
+                .onTapGesture { greet() }
             }
-            .frame(height: 270)
-            .frame(maxWidth: .infinity)
-            .contentShape(Rectangle())
-            .onTapGesture {
-                withAnimation(.spring(response: 0.45, dampingFraction: 0.6)) {
-                    delighted.toggle()
-                    burst += 1
-                }
-            }
-            .accessibilityLabel("Floating ghost. Tap to wave and dance.")
+            .frame(height: 218)
         }
+        .accessibilityLabel("Roaming ghost. Tap to wave and dance.")
         .accessibilityIdentifier("ghostMascotStage")
         .accessibilityAddTraits(.isButton)
+    }
+}
+
+/// Compact live-session status, expandable from every tab without covering controls.
+struct GhostLiveSessionPill: View {
+    let title: String
+    let subtitle: String
+    let isAnimating: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                GhostMascot(isSpeaking: isAnimating, size: 30)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(title).font(.caption.weight(.bold)).lineLimit(1)
+                    Text(subtitle).font(.caption2).foregroundStyle(GhostTheme.textSecondary).lineLimit(1)
+                }
+                Spacer(minLength: 4)
+                HStack(spacing: 2) {
+                    ForEach(0..<4, id: \.self) { index in
+                        Capsule().fill(GhostTheme.lavender)
+                            .frame(width: 2, height: isAnimating ? CGFloat(5 + (index % 3) * 4) : 4)
+                    }
+                }
+                Image(systemName: "chevron.up").font(.caption2)
+            }
+            .padding(.horizontal, 13).padding(.vertical, 8)
+            .background(.ultraThinMaterial, in: Capsule())
+            .overlay(Capsule().stroke(GhostTheme.lavender.opacity(0.35), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(title). \(subtitle). Open live controls.")
     }
 }
