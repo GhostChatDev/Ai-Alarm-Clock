@@ -33,7 +33,6 @@ struct GhostMascotApp: App {
                 .environment(store)
                 .preferredColorScheme(.dark)
         }
-        .modelContainer(for: MorningGoalRecord.self)
     }
 }
 

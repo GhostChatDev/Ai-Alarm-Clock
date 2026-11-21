@@ -1,10 +1,6 @@
 import SwiftUI
 import AVFoundation
-import Security
 import UserNotifications
-#if canImport(FoundationModels)
-import FoundationModels
-#endif
 
 /// Device-only audio and credentials. Included directly in AppStore.swift so Swift Playgrounds and Xcode both find GhostDevice in scope.
 @MainActor @Observable
@@ -19,15 +15,6 @@ final class GhostDevice: NSObject, AVSpeechSynthesizerDelegate {
     }
     var voiceEnabled = UserDefaults.standard.bool(forKey: "voiceEnabled") {
         didSet { UserDefaults.standard.set(voiceEnabled, forKey: "voiceEnabled") }
-    }
-    var remoteEnabled = UserDefaults.standard.bool(forKey: "remoteEnabled") {
-        didSet { UserDefaults.standard.set(remoteEnabled, forKey: "remoteEnabled") }
-    }
-    var endpoint = UserDefaults.standard.string(forKey: "endpoint") ?? "https://api.openai.com/v1/chat/completions" {
-        didSet { UserDefaults.standard.set(endpoint, forKey: "endpoint") }
-    }
-    var model = UserDefaults.standard.string(forKey: "model") ?? "gpt-4o-mini" {
-        didSet { UserDefaults.standard.set(model, forKey: "model") }
     }
     var toneName: String { UserDefaults.standard.string(forKey: "toneName") ?? "System default" }
     var notificationSound: String? { UserDefaults.standard.string(forKey: "notificationSound") }

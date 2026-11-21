@@ -80,7 +80,7 @@ struct NightstandModeView: View {
 
     private func clockBlock(_ time: TimeInterval) -> some View {
         VStack(spacing: 4) {
-            Text(clock, formatter: formatter)
+            Text(clock.formatted(date: .omitted, time: .shortened))
                 .font(.system(size: 110, weight: .thin, design: .rounded))
                 .monospacedDigit()
                 .lineLimit(1)
@@ -88,7 +88,7 @@ struct NightstandModeView: View {
                 .foregroundStyle(GhostTheme.purpleSoft)
                 .shadow(color: GhostTheme.purple.opacity(0.55 + 0.12 * sin(time * 0.5)), radius: 28)
             if let alarm = store.nextAlarm {
-                Label(alarm.date, format: .dateTime.weekday(.abbreviated).hour().minute())
+                Text(alarm.date, format: .dateTime.weekday(.abbreviated).hour().minute())
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(.white.opacity(0.6))
                     .labelStyle(.titleAndIcon)
