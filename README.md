@@ -5,7 +5,6 @@ synchronized live wallpaper, wake-up reminders, sleep sounds and a cute
 Nightstand Saving Mode.
 
 **Made by Agent.Ghost Coded**
-**Total Cost $35**
 **ghostchat.tech via Ghost Code**
 
 ## The design
